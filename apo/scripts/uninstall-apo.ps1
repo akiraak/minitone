@@ -4,7 +4,7 @@
 #   uninstall-apo.ps1 -DryRun  何も変えずに、行う変更だけを表示する（管理者でなくてよい）
 #
 # 行うこと:
-#   - 全部の出力デバイスの FxProperties から、この APO の CLSID を取り除く
+#   - 全部の出力デバイスの FxProperties から、この APO の CLSID を取り除く（置き換えた値は元の APO に戻す）
 #   - COM と APO の登録を消す（regsvr32 /u）
 #   - DisableProtectedAudioDG を、入れる前の状態に戻す
 #   - 音のサービス（audiosrv）を再起動する。再生中の音は一度止まる
@@ -57,6 +57,16 @@ if ($state) {
     }
 }
 
+# install-apo.ps1 が、古い形の値をこの APO に置き換えたもの。元の APO に戻す（"デバイス|値の名前" → 元の CLSID）。
+$replaced = @{}
+if ($state) {
+    foreach ($entry in @($state.ReplacedValues)) {
+        if (-not $entry) { continue }
+        $parts = ([string]$entry) -split '\|'
+        if ($parts.Count -eq 3) { $replaced["$($parts[0])|$($parts[1])"] = $parts[2] }
+    }
+}
+
 # 1. 全部の出力デバイスから CLSID を取り除く
 $render = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($RenderPath, $false)
 $endpointIds = $render.GetSubKeyNames()
@@ -80,7 +90,9 @@ foreach ($endpointId in $endpointIds) {
             $actions += @{ ValueName = $valueName; Rest = $rest; Kind = $kind }
         } elseif ($kind -eq [Microsoft.Win32.RegistryValueKind]::String) {
             if ([string]$readKey.GetValue($valueName) -ine $Clsid) { continue }
-            $actions += @{ ValueName = $valueName; Rest = @(); Kind = $kind }
+            $rest = @()
+            if ($replaced.ContainsKey("$endpointId|$valueName")) { $rest = @($replaced["$endpointId|$valueName"]) }
+            $actions += @{ ValueName = $valueName; Rest = $rest; Kind = $kind }
         }
     }
     $modesToDelete = @{}
@@ -126,7 +138,11 @@ foreach ($endpointId in $endpointIds) {
         } else {
             "  $($action.ValueName): restore to $($action.Rest -join ', ')"
             if ($writeKey) {
-                $writeKey.SetValue($action.ValueName, [string[]]$action.Rest, [Microsoft.Win32.RegistryValueKind]::MultiString)
+                if ($action.Kind -eq [Microsoft.Win32.RegistryValueKind]::String) {
+                    $writeKey.SetValue($action.ValueName, [string]$action.Rest[0], [Microsoft.Win32.RegistryValueKind]::String)
+                } else {
+                    $writeKey.SetValue($action.ValueName, [string[]]$action.Rest, [Microsoft.Win32.RegistryValueKind]::MultiString)
+                }
             }
         }
     }

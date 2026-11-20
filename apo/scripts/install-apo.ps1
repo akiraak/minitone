@@ -122,10 +122,24 @@ function Get-EndpointPlan([string] $endpointId) {
         $plan.Skip = 'the device has no FxProperties key (it cannot be created, even as administrator)'
         return $plan
     }
-    $names = $key.GetValueNames()
+    $names = @($key.GetValueNames())
     $slot = $Slots[$Stage]
-    $hasComposite = @($names | Where-Object { $_ -in "$FxGuid,13", "$FxGuid,14", "$FxGuid,15" }).Count -gt 0
+    $compositeNames = @("$FxGuid,13", "$FxGuid,14", "$FxGuid,15")
+
+    # 前の版は、古い形だけのデバイスに並べる形の値を作っていた。Windows はそれを読まなかったので消す。
+    foreach ($name in $names) {
+        if ($name -in $compositeNames -and $PriorCreated -contains "$endpointId|$name") {
+            $plan.Changes += [ordered]@{
+                ValueName = $name; Kind = 'Delete'; Existed = $true; Previous = @($key.GetValue($name)); New = @()
+            }
+        }
+    }
+    $stale = @($plan.Changes | ForEach-Object { $_.ValueName })
+    $names = @($names | Where-Object { $stale -notcontains $_ })
+
+    $hasComposite = @($names | Where-Object { $_ -in $compositeNames }).Count -gt 0
     $hasLegacy = @($names | Where-Object { $_ -in "$FxGuid,5", "$FxGuid,6", "$FxGuid,7" }).Count -gt 0
+    $attached = $false
 
     if ($hasComposite -or -not $hasLegacy) {
         # 複数を並べる形。ドライバの APO の前に置く（混ぜた直後の形式で受け取るため）。
@@ -134,7 +148,7 @@ function Get-EndpointPlan([string] $endpointId) {
         $previous = @()
         if ($existed) { $previous = @($key.GetValue($valueName)) }
         if ($previous -contains $Clsid) {
-            $plan.Skip = 'already attached'
+            $attached = $true
         } else {
             $plan.Changes += [ordered]@{
                 ValueName = $valueName; Kind = 'MultiString'; Existed = $existed
@@ -142,40 +156,26 @@ function Get-EndpointPlan([string] $endpointId) {
             }
         }
     } else {
-        # APO を 1 つだけ書く古い形。
+        # APO を 1 つだけ書く古い形。Windows はこの形のデバイスでは並べる形の値を読まない（titan で確認）。
+        # 段がドライバの APO で埋まっていれば、それをこの APO に置き換える。元の APO は記録し、解除のときに戻す。
+        # 置き換えたあいだ、そのデバイスでは元の APO（Windows の「オーディオの強化」など）は働かない。
         $valueName = "$FxGuid,$($slot.Legacy)"
-        if ($names -contains $valueName) {
-            $current = [string]$key.GetValue($valueName)
-            if ($current -ieq $Clsid) {
-                $plan.Skip = 'already attached'
-            } else {
-                # 段がドライバの APO で埋まっている。古い形の値はそのままにして、複数を並べる形の値を作る。
-                # 取り付ける段は「この APO、元の APO」の順。ほかの段は古い形の値を写す
-                # （並べる形の値があると古い形が読まれなくなっても、ほかの段の APO が外れないように）。
-                foreach ($other in @(@{ Legacy = 5; Composite = 13 }, @{ Legacy = 6; Composite = 14 }, @{ Legacy = 7; Composite = 15 })) {
-                    $legacyName = "$FxGuid,$($other.Legacy)"
-                    $compositeName = "$FxGuid,$($other.Composite)"
-                    if ($other.Composite -eq $slot.Composite) {
-                        $new = @($Clsid, $current)
-                    } elseif ($names -contains $legacyName) {
-                        $new = @([string]$key.GetValue($legacyName))
-                    } else {
-                        continue
-                    }
-                    $plan.Changes += [ordered]@{
-                        ValueName = $compositeName; Kind = 'MultiString'; Existed = $false; Previous = @(); New = $new
-                    }
-                }
-            }
+        $existed = $names -contains $valueName
+        $current = $null
+        if ($existed) { $current = [string]$key.GetValue($valueName) }
+        if ($current -ieq $Clsid) {
+            $attached = $true
         } else {
+            $previous = @()
+            if ($existed) { $previous = @($current) }
             $plan.Changes += [ordered]@{
-                ValueName = $valueName; Kind = 'String'; Existed = $false; Previous = @(); New = @($Clsid)
+                ValueName = $valueName; Kind = 'String'; Existed = $existed; Previous = $previous; New = @($Clsid)
             }
         }
     }
 
     # MFX は、どの処理モードで使うかの指定が要る。無ければ既定のモードを書く。
-    if (-not $plan.Skip -and $slot.Modes) {
+    if (-not $attached -and $slot.Modes) {
         $modesName = "$ModesGuid,$($slot.Modes)"
         if (-not ($names -contains $modesName)) {
             $plan.Changes += [ordered]@{
@@ -183,6 +183,7 @@ function Get-EndpointPlan([string] $endpointId) {
             }
         }
     }
+    if ($attached -and $plan.Changes.Count -eq 0) { $plan.Skip = 'already attached' }
     $key.Close()
     return $plan
 }
@@ -200,7 +201,23 @@ if (-not $DllPath) {
 }
 if (-not (Test-Path $DllPath)) { throw "DLL not found: $DllPath (build it with build.ps1 first)" }
 
-if ($AllDevices) { $targets = Get-ActiveRenderEndpointIds } else { $targets = @(Get-DefaultRenderEndpointId) }
+# 前の実行の記録。計画を立てるのに使う（前の版が作った値の片付け）。
+$state = $null
+if (Test-Path $StateFile) { $state = Get-Content $StateFile -Raw | ConvertFrom-Json }
+$PriorCreated = @()
+$PriorReplaced = @()
+if ($state) {
+    $PriorCreated = @($state.CreatedValues | Where-Object { $_ })
+    $PriorReplaced = @($state.ReplacedValues | Where-Object { $_ })
+}
+
+if ($AllDevices) { $targets = @(Get-ActiveRenderEndpointIds) } else { $targets = @(Get-DefaultRenderEndpointId) }
+# 前の版が並べる形の値を作ったデバイスは、いまつながっていなくても片付ける（そのまま取り付けもする）。
+foreach ($entry in $PriorCreated) {
+    $parts = ([string]$entry) -split '\|'
+    if ($parts.Count -ne 2 -or $parts[1] -notmatch ',1[345]$') { continue }
+    if ($targets -notcontains $parts[0] -and (Open-FxKey $parts[0] $false)) { $targets += $parts[0] }
+}
 $plans = @($targets | ForEach-Object { Get-EndpointPlan $_ })
 
 $audioKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($AudioPath, $false)
@@ -216,7 +233,7 @@ foreach ($plan in $plans) {
     foreach ($change in $plan.Changes) {
         "  $($change.ValueName)"
         "    before: $(if ($change.Existed) { $change.Previous -join ', ' } else { '(no value)' })"
-        "    after:  $($change.New -join ', ')"
+        "    after:  $(if ($change.Kind -eq 'Delete') { '(delete the value)' } else { $change.New -join ', ' })"
     }
 }
 "Settings file: $SettingsFile"
@@ -234,13 +251,11 @@ if (-not (Test-Path $StateFile)) {
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
     & reg.exe export "HKLM\$RenderPath" (Join-Path $StateDir "render-before-$stamp.reg") /y | Out-Null
 }
-if (Test-Path $StateFile) {
+if ($state) {
     # 2 回目以降の実行では、最初に控えた「入れる前」の状態を残す。
-    $state = Get-Content $StateFile -Raw | ConvertFrom-Json
     $firstProtected = $state.PreviousDisableProtectedAudioDG
     $protectedWasAbsent = $state.DisableProtectedAudioDGWasAbsent
 } else {
-    $state = $null
     $firstProtected = $previousProtected
     $protectedWasAbsent = ($null -eq $previousProtected)
 }
@@ -295,7 +310,9 @@ foreach ($plan in $plans) {
     if ($plan.Skip) { continue }
     $key = Open-FxKey $plan.Endpoint $true
     foreach ($change in $plan.Changes) {
-        if ($change.Kind -eq 'MultiString') {
+        if ($change.Kind -eq 'Delete') {
+            $key.DeleteValue($change.ValueName, $false)
+        } elseif ($change.Kind -eq 'MultiString') {
             $key.SetValue($change.ValueName, [string[]]$change.New, [Microsoft.Win32.RegistryValueKind]::MultiString)
         } else {
             $key.SetValue($change.ValueName, [string]$change.New[0], [Microsoft.Win32.RegistryValueKind]::String)
@@ -307,12 +324,24 @@ foreach ($plan in $plans) {
 # 7. 何を変えたかを書き残す（uninstall-apo.ps1 が読む）
 # このスクリプトが新しく作った「処理モードの指定」の値は、CLSID を含まないので、解除のときに記録が要る。
 # 登録をやり直しても失わないよう、前の記録に足していく（"デバイス|値の名前" の一覧）。
-$createdValues = @()
-if ($state) { $createdValues = @($state.CreatedValues | Where-Object { $_ }) }
+# 古い形の値をこの APO に置き換えたときは、元の APO を記録する（"デバイス|値の名前|元の CLSID" の一覧）。
+# 解除のスクリプトが元に戻す。最初の記録を残す。
+$createdValues = @($PriorCreated)
+$replacedValues = @($PriorReplaced)
 foreach ($plan in $plans) {
     foreach ($change in @($plan.Changes)) {
-        # 新しく作った、並べる形の値（,13〜,15）も記録する。解除のときに中身ごと消す
-        # （古い形のデバイスでは、元の APO を写した値も作るため）。
+        if (-not $change) { continue }
+        $entry = "$($plan.Endpoint)|$($change.ValueName)"
+        if ($change.Kind -eq 'Delete') {
+            $createdValues = @($createdValues | Where-Object { $_ -ne $entry })
+            continue
+        }
+        if ($change.Kind -eq 'String' -and $change.Existed -and $change.Previous.Count -gt 0) {
+            if (-not ($replacedValues | Where-Object { $_ -like "$entry|*" })) {
+                $replacedValues += "$entry|$($change.Previous[0])"
+            }
+        }
+        # 新しく作った、並べる形の値（,13〜,15）も記録する。元は無かった値なので、解除のときに中身ごと消す。
         $createdFx = $change.ValueName -in "$FxGuid,13", "$FxGuid,14", "$FxGuid,15"
         $createdModes = $change.ValueName -like "$ModesGuid,*"
         if ($change -and -not $change.Existed -and ($createdFx -or $createdModes)) {
@@ -327,6 +356,7 @@ foreach ($plan in $plans) {
     DisableProtectedAudioDGWasAbsent = $protectedWasAbsent
     PreviousDisableProtectedAudioDG = $firstProtected
     CreatedValues = $createdValues
+    ReplacedValues = $replacedValues
     LastPlans = $plans
 } | ConvertTo-Json -Depth 6 | Set-Content -Path $StateFile -Encoding UTF8
 
