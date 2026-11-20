@@ -24,23 +24,23 @@
     </svg>
 
     <main>
-      <!-- 電源の丸い押しボタン（直径 52 px）。ON のときは、周りのリングと電源のマークがオレンジに光る。 -->
+      <!-- 電源の丸い押しボタン（直径 52 px）。ON のときは、周りのリングと電源のマークがオレンジに光る。
+           その下に、ツマミを全部まんなかに戻す RESET のボタン。 -->
       <div class="control power">
-        <div class="slot">
-          <button type="button" id="power" aria-pressed="false" aria-label="Power">
-            <svg viewBox="-35 -35 70 70" aria-hidden="true">
-              <circle r="33" fill="#0d0e10" />
-              <circle class="ring" r="30" />
-              <circle class="body" r="25" />
-              <g class="mark">
-                <path d="M0 -12v11" />
-                <path d="M-7.5 -7.5a10.6 10.6 0 1 0 15 0" />
-              </g>
-            </svg>
-          </button>
-        </div>
+        <button type="button" id="power" aria-pressed="false" aria-label="Power">
+          <svg viewBox="-35 -35 70 70" aria-hidden="true">
+            <circle r="33" fill="#0d0e10" />
+            <circle class="ring" r="30" />
+            <circle class="body" r="25" />
+            <g class="mark">
+              <path d="M0 -12v11" />
+              <path d="M-7.5 -7.5a10.6 10.6 0 1 0 15 0" />
+            </g>
+          </svg>
+        </button>
         <span class="label">POWER</span>
         <span class="value" id="power-label">OFF</span>
+        <button type="button" id="reset" aria-label="Reset all knobs">RESET</button>
       </div>
 
       <div class="control">

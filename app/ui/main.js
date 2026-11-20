@@ -7,6 +7,7 @@ const { listen } = window.__TAURI__.event;
 
 const powerButton = document.getElementById("power");
 const powerLabel = document.getElementById("power-label");
+const resetButton = document.getElementById("reset");
 const noticeElement = document.getElementById("notice");
 const noticeText = document.getElementById("notice-text");
 const attachButton = document.getElementById("attach");
@@ -120,7 +121,7 @@ function setupKnob({ key, min, max, step, reset, detent, format }) {
     event.preventDefault();
   });
 
-  knobs[key] = { render };
+  knobs[key] = { render, reset: () => change(reset) };
 }
 
 function render() {
@@ -227,6 +228,11 @@ powerButton.addEventListener("click", () => {
   state.enabled = !state.enabled;
   render();
   scheduleSave();
+});
+
+// ツマミを全部まんなか（0 dB、100%）に戻す。電源の入り切りは変えない。
+resetButton.addEventListener("click", () => {
+  Object.values(knobs).forEach((knob) => knob.reset());
 });
 
 // トレイのメニューから入り切りされたとき。
