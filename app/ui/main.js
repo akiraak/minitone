@@ -269,9 +269,11 @@ function setupKnob({ key, min, max, step, reset, detent, format, origin, segment
     bar.appendChild(mark);
   }
 
-  const snap = (value) => {
+  // 刻みに丸める。sticky が true のとき（ツマミのドラッグ）は、detent の近くで detent に止める。
+  // ホイールとキーは 1 刻みずつ動かすので、止めない（止めると、detent から 1 刻みでは出られなくなる）。
+  const snap = (value, sticky) => {
     let snapped = Math.round(value / step) * step;
-    if (detent !== null && Math.abs(snapped - detent) <= step) snapped = detent;
+    if (sticky && detent !== null && Math.abs(snapped - detent) <= step) snapped = detent;
     return Math.min(max, Math.max(min, snapped));
   };
 
@@ -306,8 +308,8 @@ function setupKnob({ key, min, max, step, reset, detent, format, origin, segment
     }
   };
 
-  const change = (value) => {
-    const next = snap(value);
+  const change = (value, sticky = false) => {
+    const next = snap(value, sticky);
     if (next === state[key]) return;
     state[key] = next;
     render();
@@ -377,7 +379,7 @@ function setupKnob({ key, min, max, step, reset, detent, format, origin, segment
       }
       const fine = event.shiftKey ? 0.25 : 1; // Shift を押している間は細かく動かす
       const delta = ((event.clientX - dragStartX) / DRAG_PIXELS) * (max - min) * fine;
-      change(dragStartValue + delta);
+      change(dragStartValue + delta, true);
     });
     const endDrag = (event) => {
       if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
