@@ -1,0 +1,203 @@
+/* 黒いアルミのパネルに、オレンジの指針のツマミ。 */
+:root {
+  --panel-top: #2b2d32;
+  --panel-bottom: #1b1c20;
+  --text: #d5d8de;
+  --muted: #b9bdc6;
+  --tick: #8d919b;
+  --accent: #ff8a3d;
+  --line: #4a4d55;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 34px 14px;
+  background: linear-gradient(180deg, var(--panel-top) 0%, var(--panel-bottom) 100%);
+  color: var(--text);
+  font-family: "Segoe UI", "Yu Gothic UI", system-ui, sans-serif;
+  user-select: none;
+  overflow: hidden;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand .name {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+}
+
+.led {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #4a4d55;
+}
+
+body.on .led {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+#power {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: #232429;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+
+#power:hover {
+  border-color: var(--tick);
+}
+
+#power:focus-visible,
+.knob:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+body.on #power {
+  color: var(--text);
+}
+
+body.on #power svg {
+  color: var(--accent);
+}
+
+#notice {
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #5a2a0c;
+  color: #ffd9bd;
+  font-size: 12px;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 0;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 170px;
+}
+
+.control.large {
+  width: 230px;
+}
+
+.knob {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.control.large .knob {
+  width: 204px;
+  height: 204px;
+}
+
+.knob.dragging {
+  cursor: grabbing;
+}
+
+.knob svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.knob .ticks {
+  fill: none;
+  stroke: var(--tick);
+  stroke-width: 10;
+}
+
+.knob .over {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+.knob .body {
+  fill: url(#knob-body);
+  stroke: #5a5d66;
+  stroke-width: 1.5;
+}
+
+.knob .pointer line {
+  stroke: var(--accent);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.label {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.28em;
+}
+
+.value {
+  min-height: 24px;
+  color: var(--accent);
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 切ってあるときは、指針と値の色を落とす（ツマミは回せる）。 */
+body:not(.on) .knob .pointer line,
+body:not(.on) .knob .over {
+  stroke: var(--tick);
+}
+
+body:not(.on) .value {
+  color: var(--muted);
+}
+
+footer {
+  min-height: 16px;
+  color: #ffb4a8;
+  font-size: 12px;
+}

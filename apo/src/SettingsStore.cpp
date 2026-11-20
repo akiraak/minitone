@@ -109,10 +109,8 @@ void LoadIfChanged()
     g_lastWriteTime = info.ftLastWriteTime;
     g_lastSize = info.nFileSizeLow;
     Publish(settings);
-    EqLog(L"settings: loaded enabled=%d preamp=%d.%d dB bands=%d", settings.enabled ? 1 : 0,
-          static_cast<int>(settings.preampDb),
-          static_cast<int>((settings.preampDb < 0 ? -settings.preampDb : settings.preampDb) * 10.0) % 10,
-          settings.bandCount);
+    EqLog(L"settings: loaded enabled=%d volume=%d%% bands=%d", settings.enabled ? 1 : 0,
+          static_cast<int>(settings.volume * 100.0 + 0.5), settings.bandCount);
 }
 
 DWORD WINAPI WatchThread(LPVOID /*parameter*/)

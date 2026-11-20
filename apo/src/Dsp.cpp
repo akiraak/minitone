@@ -18,6 +18,8 @@ const double kMaxFrequencyHz = 22000.0;
 const double kMaxGainDb = 24.0;
 const double kMinQ = 0.1;
 const double kMaxQ = 20.0;
+const double kMaxVolume = 4.0;
+const double kGainSmoothingSeconds = 0.010;
 
 double DbToLinear(double db)
 {
@@ -84,8 +86,21 @@ void ParseLine(const char* begin, const char* end, Settings* settings)
         if (ParseNumber(value, end, &number) && number >= -kMaxGainDb && number <= kMaxGainDb)
             settings->preampDb = number;
     }
-    else if (KeyIs(begin, keyEnd, "band"))
+    else if (KeyIs(begin, keyEnd, "volume"))
     {
+        double number = 0.0;
+        if (ParseNumber(value, end, &number) && number >= 0.0 && number <= kMaxVolume)
+            settings->volume = number;
+    }
+    else if (KeyIs(begin, keyEnd, "band") || KeyIs(begin, keyEnd, "lowshelf") ||
+             KeyIs(begin, keyEnd, "highshelf"))
+    {
+        BandType type = BandType::Peaking;
+        if (KeyIs(begin, keyEnd, "lowshelf"))
+            type = BandType::LowShelf;
+        else if (KeyIs(begin, keyEnd, "highshelf"))
+            type = BandType::HighShelf;
+
         const char* comma1 = value;
         while (comma1 < end && *comma1 != ',')
             ++comma1;
@@ -98,6 +113,7 @@ void ParseLine(const char* begin, const char* end, Settings* settings)
             return;
 
         BandSetting band = {};
+        band.type = type;
         if (!ParseNumber(value, comma1, &band.frequencyHz) ||
             !ParseNumber(comma1 + 1, comma2, &band.gainDb) || !ParseNumber(comma2 + 1, end, &band.q))
             return;
@@ -119,6 +135,7 @@ Settings BypassSettings()
     Settings settings = {};
     settings.enabled = false;
     settings.preampDb = 0.0;
+    settings.volume = 1.0;
     settings.bandCount = 0;
     return settings;
 }
@@ -166,7 +183,44 @@ Biquad MakePeaking(double sampleRate, double frequencyHz, double gainDb, double 
     return biquad;
 }
 
-Processor::Processor() : bypassed_(true), channels_(0), bandCount_(0), preamp_(1.0)
+Biquad MakeLowShelf(double sampleRate, double frequencyHz, double gainDb, double q)
+{
+    const double a = pow(10.0, gainDb / 40.0);
+    const double w0 = 2.0 * kPi * frequencyHz / sampleRate;
+    const double cosW0 = cos(w0);
+    const double alpha = sin(w0) / (2.0 * q);
+    const double k = 2.0 * sqrt(a) * alpha;
+
+    const double a0 = (a + 1.0) + (a - 1.0) * cosW0 + k;
+    Biquad biquad;
+    biquad.b0 = a * ((a + 1.0) - (a - 1.0) * cosW0 + k) / a0;
+    biquad.b1 = 2.0 * a * ((a - 1.0) - (a + 1.0) * cosW0) / a0;
+    biquad.b2 = a * ((a + 1.0) - (a - 1.0) * cosW0 - k) / a0;
+    biquad.a1 = -2.0 * ((a - 1.0) + (a + 1.0) * cosW0) / a0;
+    biquad.a2 = ((a + 1.0) + (a - 1.0) * cosW0 - k) / a0;
+    return biquad;
+}
+
+Biquad MakeHighShelf(double sampleRate, double frequencyHz, double gainDb, double q)
+{
+    const double a = pow(10.0, gainDb / 40.0);
+    const double w0 = 2.0 * kPi * frequencyHz / sampleRate;
+    const double cosW0 = cos(w0);
+    const double alpha = sin(w0) / (2.0 * q);
+    const double k = 2.0 * sqrt(a) * alpha;
+
+    const double a0 = (a + 1.0) - (a - 1.0) * cosW0 + k;
+    Biquad biquad;
+    biquad.b0 = a * ((a + 1.0) + (a - 1.0) * cosW0 + k) / a0;
+    biquad.b1 = -2.0 * a * ((a - 1.0) + (a + 1.0) * cosW0) / a0;
+    biquad.b2 = a * ((a + 1.0) + (a - 1.0) * cosW0 - k) / a0;
+    biquad.a1 = 2.0 * ((a - 1.0) - (a + 1.0) * cosW0) / a0;
+    biquad.a2 = ((a + 1.0) - (a - 1.0) * cosW0 - k) / a0;
+    return biquad;
+}
+
+Processor::Processor()
+    : bypassed_(true), channels_(0), bandCount_(0), targetGain_(1.0), currentGain_(1.0), gainStep_(1.0)
 {
     memset(coefficients_, 0, sizeof(coefficients_));
     memset(z1_, 0, sizeof(z1_));
@@ -185,12 +239,24 @@ void Processor::Configure(const Settings& settings, double sampleRate, unsigned 
             const BandSetting& band = settings.bands[i];
             if (band.gainDb == 0.0 || band.frequencyHz >= sampleRate * 0.5)
                 continue;
-            coefficients[bandCount++] = MakePeaking(sampleRate, band.frequencyHz, band.gainDb, band.q);
+            switch (band.type)
+            {
+            case BandType::LowShelf:
+                coefficients[bandCount++] = MakeLowShelf(sampleRate, band.frequencyHz, band.gainDb, band.q);
+                break;
+            case BandType::HighShelf:
+                coefficients[bandCount++] = MakeHighShelf(sampleRate, band.frequencyHz, band.gainDb, band.q);
+                break;
+            default:
+                coefficients[bandCount++] = MakePeaking(sampleRate, band.frequencyHz, band.gainDb, band.q);
+                break;
+            }
         }
     }
 
     const bool supported = channels >= 1 && channels <= static_cast<unsigned>(kMaxChannels);
-    const bool bypassed = !settings.enabled || !supported || (bandCount == 0 && settings.preampDb == 0.0);
+    const double gain = DbToLinear(settings.preampDb) * settings.volume;
+    const bool bypassed = !settings.enabled || !supported || (bandCount == 0 && gain == 1.0);
 
     // 形が変わったときだけ状態を消す。同じ形なら引き継ぐ。
     if (bypassed || bandCount != bandCount_ || channels != channels_ || bypassed_)
@@ -199,10 +265,16 @@ void Processor::Configure(const Settings& settings, double sampleRate, unsigned 
         memset(z2_, 0, sizeof(z2_));
     }
 
+    // 音量は、素通しから入るときは新しい値から始め、それ以外は前の値からなめらかに動かす。
+    // 素通しへ出るときは、次に入るときのために 1.0 に戻しておく。
+    targetGain_ = bypassed ? 1.0 : gain;
+    if (bypassed || bypassed_)
+        currentGain_ = targetGain_;
+    gainStep_ = (sampleRate > 0.0) ? 1.0 - exp(-1.0 / (kGainSmoothingSeconds * sampleRate)) : 1.0;
+
     bypassed_ = bypassed;
     channels_ = channels;
     bandCount_ = bandCount;
-    preamp_ = DbToLinear(settings.preampDb);
     for (int i = 0; i < bandCount; ++i)
         coefficients_[i] = coefficients[i];
 }
@@ -218,13 +290,16 @@ void Processor::Process(const float* input, float* output, unsigned frames)
 
     const unsigned channels = channels_;
     const int bandCount = bandCount_;
-    const double preamp = preamp_;
+    const double targetGain = targetGain_;
+    const double gainStep = gainStep_;
+    double gain = currentGain_;
 
     for (unsigned frame = 0; frame < frames; ++frame)
     {
+        gain += (targetGain - gain) * gainStep;
         for (unsigned channel = 0; channel < channels; ++channel)
         {
-            double sample = static_cast<double>(input[frame * channels + channel]) * preamp;
+            double sample = static_cast<double>(input[frame * channels + channel]) * gain;
             for (int band = 0; band < bandCount; ++band)
             {
                 const Biquad& c = coefficients_[band];
@@ -236,6 +311,11 @@ void Processor::Process(const float* input, float* output, unsigned frames)
             output[frame * channels + channel] = static_cast<float>(sample);
         }
     }
+
+    // 目標にほぼ着いたら、ぴったり合わせる（いつまでも端数を追いかけない）。
+    if (fabs(targetGain - gain) < 1e-9)
+        gain = targetGain;
+    currentGain_ = gain;
 
     // 無音が続くと状態がごく小さい値（非正規化数）になり、計算が極端に遅くなる。0 に落とす。
     for (int band = 0; band < bandCount; ++band)

@@ -132,7 +132,11 @@ static void RunProcess(IAudioProcessingObjectRT* rt, IAudioProcessingObjectConfi
             Sleep(800); // 見張りのスレッドは 250 ms ごとにファイルを見る
         }
 
-        rt->APOProcess(1, inProps, 1, outProps);
+        // 再生中に音量が変わると、APO は約 10 ms かけてなめらかに動かす。
+        // 落ち着くまで同じ入力で何回か処理し、最後の 1 回の出力を確かめる（30 回 = 300 ms 分）。
+        const int rounds = (settingsAfterLock != nullptr) ? 30 : 1;
+        for (int round = 0; round < rounds; ++round)
+            rt->APOProcess(1, inProps, 1, outProps);
 
         CHECK(outProp.u32ValidFrameCount == frames, "%s: valid frame count = %u", label,
               outProp.u32ValidFrameCount);

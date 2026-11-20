@@ -10,8 +10,17 @@ namespace eq
 const int kMaxBands = 32;
 const int kMaxChannels = 8;
 
+// フィルタの種類。
+enum class BandType
+{
+    Peaking,   // 中心の周波数の周りだけを上げ下げする
+    LowShelf,  // 指定の周波数から下をまとめて上げ下げする（Bass のツマミ）
+    HighShelf, // 指定の周波数から上をまとめて上げ下げする（Treble のツマミ）
+};
+
 struct BandSetting
 {
+    BandType type;
     double frequencyHz;
     double gainDb;
     double q;
@@ -22,6 +31,8 @@ struct Settings
 {
     bool enabled;
     double preampDb;
+    // 音量の倍率。1.0 が元の音量、1.5 が 150%、0 が無音。preampDb と掛け合わせる。
+    double volume;
     int bandCount;
     BandSetting bands[kMaxBands];
 };
@@ -30,7 +41,8 @@ struct Settings
 Settings BypassSettings();
 
 // 設定ファイルの中身を読む。読めない行、範囲外の値の行は捨てる。
-// 1 行は "enabled=1" / "preamp=-3.0" / "band=周波数,増減,Q" のどれか。"#" で始まる行は注釈。
+// 1 行は "enabled=1" / "preamp=-3.0" / "volume=1.25" / "band=周波数,増減,Q" /
+// "lowshelf=周波数,増減,Q" / "highshelf=周波数,増減,Q" のどれか。"#" で始まる行は注釈。
 // 何が書かれていても Settings を返す（空なら素通しの設定）。
 Settings ParseSettings(const char* text, size_t length);
 
@@ -42,6 +54,9 @@ struct Biquad
 
 // ピーキングのフィルタの係数を計算する（RBJ の Audio EQ Cookbook の式）。
 Biquad MakePeaking(double sampleRate, double frequencyHz, double gainDb, double q);
+// シェルビングのフィルタの係数（同じく RBJ の式）。
+Biquad MakeLowShelf(double sampleRate, double frequencyHz, double gainDb, double q);
+Biquad MakeHighShelf(double sampleRate, double frequencyHz, double gainDb, double q);
 
 // 設定に従って音を処理する。インスタンスごとにフィルタの状態を持つ。
 // Configure と Process はメモリの確保をしないので、リアルタイムのスレッドから呼べる。
@@ -52,6 +67,8 @@ public:
 
     // 設定を取り込み、係数を計算し直す。バンドの数とチャンネルの数が前と同じなら、
     // フィルタの状態は引き継ぐ（設定を動かしたときに音が途切れないように）。
+    // 音量は、前の値から新しい値へ約 10 ms かけてなめらかに動かす（ツマミを回したときの雑音を防ぐ）。
+    // 素通しの状態から始まるときは、最初から新しい音量にする。
     void Configure(const Settings& settings, double sampleRate, unsigned channels);
 
     // 音を変えない設定（切ってある、またはチャンネルが多すぎる）なら true。
@@ -64,7 +81,9 @@ private:
     bool bypassed_;
     unsigned channels_;
     int bandCount_;
-    double preamp_;
+    double targetGain_;  // 目標の音量（preamp と volume を掛けたもの）
+    double currentGain_; // いまの音量。targetGain_ へ近づいていく
+    double gainStep_;    // 1 サンプルごとに近づく割合
     Biquad coefficients_[kMaxBands];
     // 転置直接形 II の状態。[バンド][チャンネル]
     double z1_[kMaxBands][kMaxChannels];

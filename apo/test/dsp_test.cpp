@@ -89,6 +89,16 @@ static void TestParse()
     CHECK(s.bandCount == 1 && s.bands[0].frequencyHz == 2000.0 && s.preampDb == 0.0,
           "parse: broken and out-of-range lines are dropped (bands=%d)", s.bandCount);
 
+    s = Parse("enabled=1\nvolume=1.25\nlowshelf=150,6,0.707\nhighshelf=5000,-4,0.707\nband=1000,2,1\n");
+    CHECK(s.volume == 1.25 && s.bandCount == 3 && s.bands[0].type == eq::BandType::LowShelf &&
+              s.bands[1].type == eq::BandType::HighShelf && s.bands[2].type == eq::BandType::Peaking,
+          "parse: volume, lowshelf, highshelf");
+    s = Parse("enabled=1\nvolume=-1\n");
+    CHECK(s.volume == 1.0, "parse: negative volume is dropped");
+    s = Parse("enabled=1\nvolume=99\n");
+    CHECK(s.volume == 1.0, "parse: volume above the limit is dropped");
+    CHECK(Parse("").volume == 1.0, "parse: default volume is 1.0");
+
     char many[4096] = "enabled=1\n";
     for (int i = 0; i < 40; ++i)
         strncat(many, "band=1000,1,1\n", sizeof(many) - strlen(many) - 1);
@@ -123,6 +133,46 @@ static void TestResponse()
     s = Parse("enabled=1\nband=30000,6,1\n");
     gain = MeasureGainDb(s, 48000.0, 1000.0, 2);
     CHECK(fabs(gain) < 0.001, "band above Nyquist is ignored: %.3f dB", gain);
+
+    // Bass のツマミ: 低い側だけが上がり、高い側は変わらない。
+    s = Parse("enabled=1\nlowshelf=150,8,0.707\n");
+    low = MeasureGainDb(s, 48000.0, 20.0, 2);
+    double middle = MeasureGainDb(s, 48000.0, 150.0, 2);
+    high = MeasureGainDb(s, 48000.0, 5000.0, 2);
+    CHECK(fabs(low - 8.0) < 0.2, "low shelf +8 dB at 150 Hz: 20 Hz = %.3f dB", low);
+    CHECK(fabs(middle - 4.0) < 0.2, "low shelf: half the gain at the corner (%.3f dB)", middle);
+    CHECK(fabs(high) < 0.1, "low shelf: 5 kHz unchanged (%.3f dB)", high);
+
+    // Treble のツマミ: 高い側だけが下がり、低い側は変わらない。
+    s = Parse("enabled=1\nhighshelf=5000,-10,0.707\n");
+    low = MeasureGainDb(s, 44100.0, 100.0, 2);
+    middle = MeasureGainDb(s, 44100.0, 5000.0, 2);
+    high = MeasureGainDb(s, 44100.0, 20000.0, 2);
+    CHECK(fabs(low) < 0.1, "high shelf -10 dB at 5 kHz: 100 Hz unchanged (%.3f dB)", low);
+    CHECK(fabs(middle + 5.0) < 0.2, "high shelf: half the gain at the corner (%.3f dB)", middle);
+    CHECK(fabs(high + 10.0) < 0.2, "high shelf: 20 kHz = %.3f dB", high);
+
+    // Volume のツマミ: 150% は +3.52 dB、50% は -6.02 dB、0% は無音。
+    gain = MeasureGainDb(Parse("enabled=1\nvolume=1.5\n"), 48000.0, 440.0, 2);
+    CHECK(fabs(gain - 3.5218) < 0.01, "volume 150%%: %.3f dB", gain);
+    gain = MeasureGainDb(Parse("enabled=1\nvolume=0.5\npreamp=-6\n"), 48000.0, 440.0, 2);
+    CHECK(fabs(gain + 12.0206) < 0.01, "volume 50%% with preamp -6 dB: %.3f dB", gain);
+    {
+        eq::Processor muted;
+        muted.Configure(Parse("enabled=1\nvolume=0\n"), 48000.0, 2);
+        float in[64];
+        float out[64];
+        for (int i = 0; i < 64; ++i)
+        {
+            in[i] = 0.5f;
+            out[i] = 9.0f;
+        }
+        muted.Process(in, out, 32);
+        bool silent = true;
+        for (int i = 0; i < 64; ++i)
+            silent = silent && out[i] == 0.0f;
+        CHECK(!muted.IsBypassed() && silent, "volume 0%% is silence");
+    }
 }
 
 static void TestBypass()
@@ -216,6 +266,37 @@ static void TestStability()
     }
     // 1 kHz / 48 kHz の正弦波は、隣のサンプルとの差が振幅の約 13% まで。振幅は最大でも 0.1 x 2.3 倍。
     CHECK(worstJump < 0.05, "moving a band while playing does not click (largest step = %.4f)", worstJump);
+
+    // 音量を一気に変えても、出力が跳ねずになめらかに動くこと。
+    eq::Processor volume;
+    volume.Configure(Parse("enabled=1\nvolume=0.2\n"), 48000.0, 2);
+    worstJump = 0.0;
+    position = 0;
+    previous = 0.0f;
+    float last = 0.0f;
+    for (int step = 0; step < 20; ++step)
+    {
+        if (step == 5)
+            volume.Configure(Parse("enabled=1\nvolume=1.5\n"), 48000.0, 2);
+        for (int i = 0; i < 480; ++i, ++position)
+        {
+            float value = static_cast<float>(0.5 * sin(2.0 * kPi * 100.0 * position / 48000.0));
+            in[i * 2] = value;
+            in[i * 2 + 1] = value;
+        }
+        volume.Process(in, out, 480);
+        for (int i = 0; i < 480; ++i)
+        {
+            double jump = fabs(static_cast<double>(out[i * 2]) - previous);
+            if (jump > worstJump)
+                worstJump = jump;
+            previous = out[i * 2];
+        }
+        last = out[479 * 2] / in[479 * 2];
+    }
+    // 100 Hz / 48 kHz、振幅 0.75 の正弦波そのものの最大の差は約 0.01。
+    CHECK(worstJump < 0.02, "a sudden volume change is smoothed (largest step = %.4f)", worstJump);
+    CHECK(fabs(last - 1.5f) < 0.001f, "the volume settles at the new value (x %.4f)", last);
 }
 
 int main()

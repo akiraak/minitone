@@ -1,3 +1,5 @@
 # Keys for development tests. Never commit.
 .env
 apo/build/
+app/src-tauri/gen/
+app/src-tauri/target/
