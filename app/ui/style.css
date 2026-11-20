@@ -76,10 +76,11 @@ body.on #power .mark {
   transform: scale(0.96);
 }
 
+/* フォーカスの枠は出さない。マウスで操作したあとに音量のキーなどを押すと、
+   キーボードの操作とみなされて枠が出てしまうため。 */
 #power:focus-visible,
 .knob:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
+  outline: none;
 }
 
 /* 知らせとエラーは、パネルの上と下の端に重ねて出す（ウィンドウが小さいので、場所を取らない）。 */
