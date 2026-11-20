@@ -41,7 +41,7 @@ if (-not $DryRun -and -not (Test-Admin)) {
 $state = $null
 if (Test-Path $StateFile) { $state = Get-Content $StateFile -Raw | ConvertFrom-Json }
 
-# install-apo.ps1 が新しく作った値（処理モードの指定）。CLSID を含まないので、記録から探す。
+# install-apo.ps1 が新しく作った値（処理モードの指定と、古い形のデバイスに作った並べる形の FX の値）。記録から探す。
 # 記録は、登録をやり直しても積み上げてある（CreatedValues）。古い版の記録（LastPlans）も読む。
 $createdModes = @{}
 if ($state) {
@@ -75,6 +75,8 @@ foreach ($endpointId in $endpointIds) {
             $current = @($readKey.GetValue($valueName))
             if ($current -notcontains $Clsid) { continue }
             $rest = @($current | Where-Object { $_ -ine $Clsid })
+            # install-apo.ps1 が作った値（古い形のデバイスに作った、並べる形の値）は、元は無かったので消す。
+            if ($createdModes.ContainsKey("$endpointId|$valueName")) { $rest = @() }
             $actions += @{ ValueName = $valueName; Rest = $rest; Kind = $kind }
         } elseif ($kind -eq [Microsoft.Win32.RegistryValueKind]::String) {
             if ([string]$readKey.GetValue($valueName) -ine $Clsid) { continue }
@@ -83,7 +85,8 @@ foreach ($endpointId in $endpointIds) {
     }
     $modesToDelete = @{}
     foreach ($valueName in $readKey.GetValueNames()) {
-        if ($createdModes.ContainsKey("$endpointId|$valueName") -and $actions.Count -gt 0) {
+        if ($createdModes.ContainsKey("$endpointId|$valueName") -and $actions.Count -gt 0 -and
+            -not ($actions | Where-Object { $_.ValueName -ieq $valueName })) {
             $modesToDelete[$valueName] = $true
         }
     }

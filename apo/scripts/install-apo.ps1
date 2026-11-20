@@ -142,12 +142,31 @@ function Get-EndpointPlan([string] $endpointId) {
             }
         }
     } else {
-        # APO を 1 つだけ書く古い形。空いているときだけ書く。
+        # APO を 1 つだけ書く古い形。
         $valueName = "$FxGuid,$($slot.Legacy)"
         if ($names -contains $valueName) {
             $current = [string]$key.GetValue($valueName)
-            if ($current -ieq $Clsid) { $plan.Skip = 'already attached' }
-            else { $plan.Skip = "this stage holds a driver APO ($current) in the single-APO format; not supported" }
+            if ($current -ieq $Clsid) {
+                $plan.Skip = 'already attached'
+            } else {
+                # 段がドライバの APO で埋まっている。古い形の値はそのままにして、複数を並べる形の値を作る。
+                # 取り付ける段は「この APO、元の APO」の順。ほかの段は古い形の値を写す
+                # （並べる形の値があると古い形が読まれなくなっても、ほかの段の APO が外れないように）。
+                foreach ($other in @(@{ Legacy = 5; Composite = 13 }, @{ Legacy = 6; Composite = 14 }, @{ Legacy = 7; Composite = 15 })) {
+                    $legacyName = "$FxGuid,$($other.Legacy)"
+                    $compositeName = "$FxGuid,$($other.Composite)"
+                    if ($other.Composite -eq $slot.Composite) {
+                        $new = @($Clsid, $current)
+                    } elseif ($names -contains $legacyName) {
+                        $new = @([string]$key.GetValue($legacyName))
+                    } else {
+                        continue
+                    }
+                    $plan.Changes += [ordered]@{
+                        ValueName = $compositeName; Kind = 'MultiString'; Existed = $false; Previous = @(); New = $new
+                    }
+                }
+            }
         } else {
             $plan.Changes += [ordered]@{
                 ValueName = $valueName; Kind = 'String'; Existed = $false; Previous = @(); New = @($Clsid)
@@ -292,7 +311,11 @@ $createdValues = @()
 if ($state) { $createdValues = @($state.CreatedValues | Where-Object { $_ }) }
 foreach ($plan in $plans) {
     foreach ($change in @($plan.Changes)) {
-        if ($change -and $change.ValueName -like "$ModesGuid,*" -and -not $change.Existed) {
+        # 新しく作った、並べる形の値（,13〜,15）も記録する。解除のときに中身ごと消す
+        # （古い形のデバイスでは、元の APO を写した値も作るため）。
+        $createdFx = $change.ValueName -in "$FxGuid,13", "$FxGuid,14", "$FxGuid,15"
+        $createdModes = $change.ValueName -like "$ModesGuid,*"
+        if ($change -and -not $change.Existed -and ($createdFx -or $createdModes)) {
             $entry = "$($plan.Endpoint)|$($change.ValueName)"
             if ($createdValues -notcontains $entry) { $createdValues += $entry }
         }
