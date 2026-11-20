@@ -14,7 +14,7 @@ const statusElement = document.getElementById("status");
 
 // ツマミは、まんなか（真上）から左右に 135 度ずつ回る。
 const SWEEP_DEGREES = 270;
-// 端から端まで回すのに要る、マウスの縦の移動量（px）。
+// 端から端まで回すのに要る、マウスの横の移動量（px）。
 const DRAG_PIXELS = 220;
 
 let state = { enabled: false, treble: 0, mid: 0, bass: 0, volume: 100 };
@@ -66,20 +66,20 @@ function setupKnob({ key, min, max, step, reset, detent, format }) {
     scheduleSave();
   };
 
-  // 上下にドラッグして回す。止まりやすい位置を通り抜けられるよう、丸める前の値を覚えておく。
-  let dragStartY = 0;
+  // 左右にドラッグして回す（右で増える）。止まりやすい位置を通り抜けられるよう、丸める前の値を覚えておく。
+  let dragStartX = 0;
   let dragStartValue = 0;
   element.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) return;
     element.setPointerCapture(event.pointerId);
     element.classList.add("dragging");
-    dragStartY = event.clientY;
+    dragStartX = event.clientX;
     dragStartValue = state[key];
   });
   element.addEventListener("pointermove", (event) => {
     if (!element.hasPointerCapture(event.pointerId)) return;
     const fine = event.shiftKey ? 0.25 : 1; // Shift を押している間は細かく動かす
-    const delta = ((dragStartY - event.clientY) / DRAG_PIXELS) * (max - min) * fine;
+    const delta = ((event.clientX - dragStartX) / DRAG_PIXELS) * (max - min) * fine;
     change(dragStartValue + delta);
   });
   const endDrag = (event) => {
