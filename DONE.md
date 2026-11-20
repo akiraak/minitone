@@ -28,3 +28,7 @@
 - [x] アプリ名を MiniTone にする（2026-11-20） [plan](docs/plans/archive/rename-minitone.md)
   - 表示、実行ファイル、インストーラ、README の名前と、内部の名前（GitHub のリポジトリ、設定とログのフォルダ、APO の DLL、レジストリ、開発用のフォルダ、WSL のフォルダ、project-manager の登録）を変えた。CLSID は変えていない
   - 前の版（equalizer）をアンインストールしてから MiniTone を入れ、表示と音をユーザーが確かめた
+- [x] 中音（MID）のツマミを足す（2026-11-20） [plan](docs/plans/archive/three-band-tone.md)
+  - ユーザーが検討を指示し、調べた結果（声の聞き取りに効くのは 1 〜 4 kHz）を見て「2 kHz で 20 dB」と決定。BASS、MID、TREBLE、VOLUME の 4 つ。ウィンドウの幅は 730
+  - APO は変えていない（設定ファイルの `band=2000,増減,0.7`）。ユーザーが音を確かめ、「問題なかったので入れたままにする」と確認
+  - README の画面の絵を 4 つのツマミのものに差し替えた
