@@ -17,7 +17,7 @@ const SWEEP_DEGREES = 270;
 // 端から端まで回すのに要る、マウスの縦の移動量（px）。
 const DRAG_PIXELS = 220;
 
-let state = { enabled: false, treble: 0, bass: 0, volume: 100 };
+let state = { enabled: false, treble: 0, mid: 0, bass: 0, volume: 100 };
 // いまの出力デバイスの状態（Rust 側の DeviceStatus）。
 let device = null;
 let attaching = false;
@@ -162,8 +162,9 @@ async function load() {
   state = payload.state;
 
   const tone = payload.maxToneDb;
-  setupKnob({ key: "treble", min: -tone, max: tone, step: 0.5, reset: 0, detent: 0, format: formatDb });
-  setupKnob({ key: "bass", min: -tone, max: tone, step: 0.5, reset: 0, detent: 0, format: formatDb });
+  for (const key of ["bass", "mid", "treble"]) {
+    setupKnob({ key, min: -tone, max: tone, step: 0.5, reset: 0, detent: 0, format: formatDb });
+  }
   setupKnob({
     key: "volume",
     min: 0,

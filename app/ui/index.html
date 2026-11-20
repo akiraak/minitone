@@ -13,7 +13,7 @@
       <button type="button" id="attach" hidden></button>
     </div>
 
-    <!-- ツマミの絵は 3 つとも同じ部品を使う。目盛りと指針の位置は main.js が決める。 -->
+    <!-- ツマミの絵は 4 つとも同じ部品を使う。目盛りと指針の位置は main.js が決める。 -->
     <svg width="0" height="0" aria-hidden="true" focusable="false">
       <defs>
         <radialGradient id="knob-body" cx="35%" cy="28%" r="80%">
@@ -44,19 +44,6 @@
       </div>
 
       <div class="control">
-        <div class="knob" id="treble" role="slider" tabindex="0" aria-label="Treble">
-          <svg viewBox="-100 -100 200 200" aria-hidden="true">
-            <path class="ticks" d="M -60.81 60.81 A 86 86 0 1 1 60.81 60.81" pathLength="100" stroke-dasharray="0.8 9.12" />
-            <circle r="68" fill="#0d0e10" />
-            <circle class="body" r="64" />
-            <g class="pointer"><line x1="0" y1="-58" x2="0" y2="-30" /></g>
-          </svg>
-        </div>
-        <span class="label">TREBLE</span>
-        <span class="value" id="treble-value"></span>
-      </div>
-
-      <div class="control">
         <div class="knob" id="bass" role="slider" tabindex="0" aria-label="Bass">
           <svg viewBox="-100 -100 200 200" aria-hidden="true">
             <path class="ticks" d="M -60.81 60.81 A 86 86 0 1 1 60.81 60.81" pathLength="100" stroke-dasharray="0.8 9.12" />
@@ -67,6 +54,32 @@
         </div>
         <span class="label">BASS</span>
         <span class="value" id="bass-value"></span>
+      </div>
+
+      <div class="control">
+        <div class="knob" id="mid" role="slider" tabindex="0" aria-label="Mid">
+          <svg viewBox="-100 -100 200 200" aria-hidden="true">
+            <path class="ticks" d="M -60.81 60.81 A 86 86 0 1 1 60.81 60.81" pathLength="100" stroke-dasharray="0.8 9.12" />
+            <circle r="68" fill="#0d0e10" />
+            <circle class="body" r="64" />
+            <g class="pointer"><line x1="0" y1="-58" x2="0" y2="-30" /></g>
+          </svg>
+        </div>
+        <span class="label">MID</span>
+        <span class="value" id="mid-value"></span>
+      </div>
+
+      <div class="control">
+        <div class="knob" id="treble" role="slider" tabindex="0" aria-label="Treble">
+          <svg viewBox="-100 -100 200 200" aria-hidden="true">
+            <path class="ticks" d="M -60.81 60.81 A 86 86 0 1 1 60.81 60.81" pathLength="100" stroke-dasharray="0.8 9.12" />
+            <circle r="68" fill="#0d0e10" />
+            <circle class="body" r="64" />
+            <g class="pointer"><line x1="0" y1="-58" x2="0" y2="-30" /></g>
+          </svg>
+        </div>
+        <span class="label">TREBLE</span>
+        <span class="value" id="treble-value"></span>
       </div>
 
       <div class="control">
