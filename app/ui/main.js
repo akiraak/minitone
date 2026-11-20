@@ -107,26 +107,49 @@ function setupKnob({ key, min, max, step, reset, detent, format, origin, segment
     scheduleSave();
   };
 
-  // ツマミにもバーにも、同じ操作を付ける。
-  //   dragPixels: 端から端まで動かすのに要る、マウスの横の移動量（px）を返す関数
-  const attach = (target, dragPixels) => {
-    // 左右にドラッグして動かす（右で増える）。押した場所へ値が飛ぶことはない。
-    // 止まりやすい位置を通り抜けられるよう、丸める前の値を覚えておく。
+  // バーの上の位置（画面の x 座標）を、値に直す。押した LED までが光る値にする。
+  const valueAt = (clientX) => {
+    const rect = bar.getBoundingClientRect();
+    const width = Math.max(1, rect.width);
+    const x = clientX - rect.left;
+    // まんなかの印のすぐ近く（3 px 以内）は、まんなかの値にする。
+    if (detent !== null && Math.abs(x - ((detent - min) / (max - min)) * width) <= 3) return detent;
+    const raw = min + (x / width) * (max - min);
+    // origin から遠いほうの刻みに寄せる（押した LED の途中でも、その LED が光るように）。
+    const stepped = raw > origin ? Math.ceil(raw / step - 1e-9) * step : Math.floor(raw / step + 1e-9) * step;
+    return Math.min(max, Math.max(min, stepped));
+  };
+
+  const set = (value) => {
+    if (value === state[key]) return;
+    state[key] = value;
+    render();
+    scheduleSave();
+  };
+
+  // ツマミにもバーにも、同じ操作を付ける。違うのはドラッグだけ。
+  //   absolute が false（ツマミ）: 左右にドラッグした分だけ動く。押した場所へ値が飛ぶことはない。
+  //   absolute が true（バー）: 押した場所の値になり、ドラッグするとマウスに付いてくる。
+  const attach = (target, absolute) => {
+    // 止まりやすい位置を通り抜けられるよう、丸める前の値を覚えておく（ツマミ）。
     let dragStartX = 0;
     let dragStartValue = 0;
-    let dragSpan = 1;
     target.addEventListener("pointerdown", (event) => {
       if (event.button !== 0) return;
       target.setPointerCapture(event.pointerId);
       target.classList.add("dragging");
       dragStartX = event.clientX;
       dragStartValue = state[key];
-      dragSpan = Math.max(1, dragPixels());
+      if (absolute) set(valueAt(event.clientX));
     });
     target.addEventListener("pointermove", (event) => {
       if (!target.hasPointerCapture(event.pointerId)) return;
+      if (absolute) {
+        set(valueAt(event.clientX));
+        return;
+      }
       const fine = event.shiftKey ? 0.25 : 1; // Shift を押している間は細かく動かす
-      const delta = ((event.clientX - dragStartX) / dragSpan) * (max - min) * fine;
+      const delta = ((event.clientX - dragStartX) / DRAG_PIXELS) * (max - min) * fine;
       change(dragStartValue + delta);
     });
     const endDrag = (event) => {
@@ -168,9 +191,8 @@ function setupKnob({ key, min, max, step, reset, detent, format, origin, segment
     });
   };
 
-  attach(element, () => DRAG_PIXELS);
-  // バーは、マウスの動きと光る位置がそろうよう、バーの幅を端から端までの移動量にする。
-  attach(bar, () => bar.getBoundingClientRect().width);
+  attach(element, false);
+  attach(bar, true);
 
   knobs[key] = { render, reset: () => change(reset) };
 }

@@ -310,12 +310,8 @@ body:not(.digital) #bars {
   display: flex;
   gap: 2px;
   height: 14px;
-  cursor: grab;
+  cursor: pointer;
   touch-action: none;
-}
-
-.bar.dragging {
-  cursor: grabbing;
 }
 
 /* LED の 1 粒。 */
