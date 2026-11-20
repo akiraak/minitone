@@ -82,6 +82,7 @@ body.on #power .mark {
 #reset:focus-visible,
 #view button:focus-visible,
 .bar:focus-visible,
+.point:focus-visible,
 .knob:focus-visible {
   outline: none;
 }
@@ -371,7 +372,109 @@ body:not(.on) #bars .num {
   color: var(--muted);
 }
 
-/* 表示の切り替え。右の端のまんなかに、小さい絵を縦に 2 つ。 */
+/* ---- 曲線の表示 ---- */
+
+/* BASS、MID、TREBLE のツマミの場所に、グラフ（392 px = ツマミ 3 つと、その間の空き 2 つ）を置く。
+   VOLUME のツマミはそのまま。 */
+body.curve .control.tone {
+  display: none;
+}
+
+body:not(.curve) #curve {
+  display: none;
+}
+
+#curve {
+  flex: none;
+  display: block;
+  margin-left: 22px;
+  font-family: inherit;
+}
+
+#curve .window {
+  fill: #0d0e10;
+  stroke: #3a3d44;
+}
+
+/* LED の 1 粒。 */
+#curve .led {
+  fill: #1c1d21;
+}
+
+#curve .led.lit {
+  fill: var(--accent);
+  fill-opacity: 0.5;
+}
+
+#curve .zero {
+  stroke: var(--line);
+}
+
+#curve .tick {
+  stroke: #7d818b;
+}
+
+#curve .axis {
+  fill: #7d818b;
+  font-size: 8.5px;
+}
+
+#curve .name {
+  fill: var(--muted);
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-anchor: middle;
+}
+
+#curve-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.point {
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.point .dot {
+  fill: #16171a;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+
+/* 見えない、つかむための広い丸。 */
+.point .grab {
+  fill: transparent;
+  pointer-events: all;
+}
+
+.point .num {
+  fill: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+/* 切ってあるときは、ツマミと同じように色を落とす（点は動かせる）。 */
+body:not(.on) #curve .led.lit {
+  fill: var(--tick);
+}
+
+body:not(.on) #curve-line,
+body:not(.on) .point .dot {
+  stroke: var(--tick);
+}
+
+body:not(.on) .point .num {
+  fill: var(--muted);
+}
+
+/* 表示の切り替え。右の端のまんなかに、小さい絵を縦に 3 つ。 */
 #view {
   position: absolute;
   right: 14px;

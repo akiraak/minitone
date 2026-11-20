@@ -43,7 +43,7 @@
         <button type="button" id="reset" aria-label="Reset all knobs">RESET</button>
       </div>
 
-      <div class="control">
+      <div class="control tone">
         <div class="knob" id="bass" role="slider" tabindex="0" aria-label="Bass">
           <svg viewBox="-100 -100 200 200" aria-hidden="true">
             <path class="ticks" d="M -60.81 60.81 A 86 86 0 1 1 60.81 60.81" pathLength="100" stroke-dasharray="0.8 9.12" />
@@ -56,7 +56,7 @@
         <span class="value" id="bass-value"></span>
       </div>
 
-      <div class="control">
+      <div class="control tone">
         <div class="knob" id="mid" role="slider" tabindex="0" aria-label="Mid">
           <svg viewBox="-100 -100 200 200" aria-hidden="true">
             <path class="ticks" d="M -60.81 60.81 A 86 86 0 1 1 60.81 60.81" pathLength="100" stroke-dasharray="0.8 9.12" />
@@ -69,7 +69,7 @@
         <span class="value" id="mid-value"></span>
       </div>
 
-      <div class="control">
+      <div class="control tone">
         <div class="knob" id="treble" role="slider" tabindex="0" aria-label="Treble">
           <svg viewBox="-100 -100 200 200" aria-hidden="true">
             <path class="ticks" d="M -60.81 60.81 A 86 86 0 1 1 60.81 60.81" pathLength="100" stroke-dasharray="0.8 9.12" />
@@ -81,6 +81,26 @@
         <span class="label">TREBLE</span>
         <span class="value" id="treble-value"></span>
       </div>
+
+      <!-- 曲線の表示。横が周波数（20 Hz〜20 kHz）、縦が増減（dB）。後ろに LED の棒が並び、下から曲線の高さまで光る。
+           BASS、MID、TREBLE の点を上下に動かす。VOLUME は右のツマミ。LED、目盛り、名前は main.js が並べる。
+           大きさ（392 x 164、グラフの部分は上から 2〜148 px）は main.js の CURVE と合わせる。 -->
+      <svg id="curve" width="392" height="164" viewBox="0 0 392 164">
+        <clipPath id="curve-clip"><rect x="0" y="2" width="392" height="146" rx="4" /></clipPath>
+        <rect class="window" x="0.5" y="2.5" width="391" height="145" rx="4" />
+        <g id="curve-leds"></g>
+        <g id="curve-axis"></g>
+        <path id="curve-line" clip-path="url(#curve-clip)" />
+        <g class="point" id="bass-point" role="slider" tabindex="0" aria-label="Bass">
+          <circle class="dot" r="6" /><circle class="grab" r="14" /><text class="num"></text>
+        </g>
+        <g class="point" id="mid-point" role="slider" tabindex="0" aria-label="Mid">
+          <circle class="dot" r="6" /><circle class="grab" r="14" /><text class="num"></text>
+        </g>
+        <g class="point" id="treble-point" role="slider" tabindex="0" aria-label="Treble">
+          <circle class="dot" r="6" /><circle class="grab" r="14" /><text class="num"></text>
+        </g>
+      </svg>
 
       <div class="control">
         <div class="knob" id="volume" role="slider" tabindex="0" aria-label="Volume">
@@ -122,13 +142,16 @@
       </div>
     </main>
 
-    <!-- 表示の切り替え。上がツマミ、下がバー。いまの表示のほうがオレンジに光る。 -->
+    <!-- 表示の切り替え。上からツマミ、バー、曲線。いまの表示がオレンジに光る。 -->
     <div id="view">
       <button type="button" id="view-analog" aria-pressed="true" aria-label="Knob view" title="Knobs">
         <svg viewBox="-12 -12 24 24" aria-hidden="true"><circle r="8" /><path d="M0 -1.5L4.2 -5.7" /></svg>
       </button>
       <button type="button" id="view-digital" aria-pressed="false" aria-label="Bar view" title="Bars">
         <svg viewBox="-12 -12 24 24" aria-hidden="true"><path d="M-8 -6H1M-8 0H7M-8 6H-3" /></svg>
+      </button>
+      <button type="button" id="view-curve" aria-pressed="false" aria-label="Curve view" title="Curve">
+        <svg viewBox="-12 -12 24 24" aria-hidden="true"><path d="M-9 4C-5 4 -4.5 -5 -1 -5S3 3 9 3" /></svg>
       </button>
     </div>
 
