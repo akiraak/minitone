@@ -20,6 +20,7 @@ $ErrorActionPreference = 'Stop'
 $Clsid = '{40874C30-A23F-4E8D-B383-B40845BA5584}'
 $FxGuid = '{d04e05a6-594b-4fb6-a80d-01af5eed7d1d}'
 $ModesGuid = '{d3993a3f-99c2-4402-b5ec-a92a0367664b}'
+$DefaultMode = '{C18E2F7E-933D-4965-B7D1-1EEF228D2AF3}'
 $RenderPath = 'SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render'
 $AudioPath = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Audio'
 $SettingsPath = 'SOFTWARE\akiraak\equalizer'
@@ -41,8 +42,12 @@ $state = $null
 if (Test-Path $StateFile) { $state = Get-Content $StateFile -Raw | ConvertFrom-Json }
 
 # install-apo.ps1 が新しく作った値（処理モードの指定）。CLSID を含まないので、記録から探す。
+# 記録は、登録をやり直しても積み上げてある（CreatedValues）。古い版の記録（LastPlans）も読む。
 $createdModes = @{}
 if ($state) {
+    foreach ($entry in @($state.CreatedValues)) {
+        if ($entry) { $createdModes[[string]$entry] = $true }
+    }
     foreach ($plan in @($state.LastPlans)) {
         foreach ($change in @($plan.Changes)) {
             if ($change -and $change.ValueName -like "$ModesGuid,*" -and -not $change.Existed) {
@@ -76,10 +81,27 @@ foreach ($endpointId in $endpointIds) {
             $actions += @{ ValueName = $valueName; Rest = @(); Kind = $kind }
         }
     }
+    $modesToDelete = @{}
     foreach ($valueName in $readKey.GetValueNames()) {
         if ($createdModes.ContainsKey("$endpointId|$valueName") -and $actions.Count -gt 0) {
-            $actions += @{ ValueName = $valueName; Rest = @(); Kind = 'CreatedModes' }
+            $modesToDelete[$valueName] = $true
         }
+    }
+    # 記録が無くても、install-apo.ps1 が作ったと分かる場合は消す（古い版は、登録をやり直すと記録を失っていた）。
+    # 条件: この APO だけが入っていた MFX の値（= このスクリプトが消す値）があり、ほかに MFX の APO が無く、
+    # 処理モードの値が「既定のモードだけ」になっている。install-apo.ps1 が書く内容そのもの。
+    $mfxName = "$FxGuid,14"
+    $modesName = "$ModesGuid,6"
+    $createdMfx = @($actions | Where-Object { $_.ValueName -ieq $mfxName -and $_.Rest.Count -eq 0 }).Count -gt 0
+    $names = $readKey.GetValueNames()
+    if ($createdMfx -and ($names -contains $modesName) -and -not ($names -contains "$FxGuid,6")) {
+        if ($readKey.GetValueKind($modesName) -eq [Microsoft.Win32.RegistryValueKind]::MultiString) {
+            $modes = @($readKey.GetValue($modesName))
+            if ($modes.Count -eq 1 -and $modes[0] -ieq $DefaultMode) { $modesToDelete[$modesName] = $true }
+        }
+    }
+    foreach ($valueName in $modesToDelete.Keys) {
+        $actions += @{ ValueName = $valueName; Rest = @(); Kind = 'CreatedModes' }
     }
     $readKey.Close()
     if ($actions.Count -eq 0) { continue }

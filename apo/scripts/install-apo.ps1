@@ -209,14 +209,19 @@ if ($DryRun) { ''; '-DryRun なので何も変えていない。'; return }
 New-Item -ItemType Directory -Force -Path $StateDir | Out-Null
 # APO（LocalService の権限で動く）がこのフォルダにログを書けるようにする。S-1-5-19 は LocalService。
 & icacls.exe $StateDir /grant '*S-1-5-19:(OI)(CI)M' | Out-Null
-$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-& reg.exe export "HKLM\$RenderPath" (Join-Path $StateDir "render-before-$stamp.reg") /y | Out-Null
+# レジストリの控えは、入っていない状態から入れるときにだけ書き出す（1 回で約 6 MB ある）。
+# 上書きで入れ直すたびに書き出すと、「入れる前」ではない控えが増えていくだけになる。
+if (-not (Test-Path $StateFile)) {
+    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    & reg.exe export "HKLM\$RenderPath" (Join-Path $StateDir "render-before-$stamp.reg") /y | Out-Null
+}
 if (Test-Path $StateFile) {
     # 2 回目以降の実行では、最初に控えた「入れる前」の状態を残す。
     $state = Get-Content $StateFile -Raw | ConvertFrom-Json
     $firstProtected = $state.PreviousDisableProtectedAudioDG
     $protectedWasAbsent = $state.DisableProtectedAudioDGWasAbsent
 } else {
+    $state = $null
     $firstProtected = $previousProtected
     $protectedWasAbsent = ($null -eq $previousProtected)
 }
@@ -281,11 +286,24 @@ foreach ($plan in $plans) {
 }
 
 # 7. 何を変えたかを書き残す（uninstall-apo.ps1 が読む）
+# このスクリプトが新しく作った「処理モードの指定」の値は、CLSID を含まないので、解除のときに記録が要る。
+# 登録をやり直しても失わないよう、前の記録に足していく（"デバイス|値の名前" の一覧）。
+$createdValues = @()
+if ($state) { $createdValues = @($state.CreatedValues | Where-Object { $_ }) }
+foreach ($plan in $plans) {
+    foreach ($change in @($plan.Changes)) {
+        if ($change -and $change.ValueName -like "$ModesGuid,*" -and -not $change.Existed) {
+            $entry = "$($plan.Endpoint)|$($change.ValueName)"
+            if ($createdValues -notcontains $entry) { $createdValues += $entry }
+        }
+    }
+}
 [ordered]@{
     InstalledAt = (Get-Date -Format 's')
     Stage = $Stage
     DisableProtectedAudioDGWasAbsent = $protectedWasAbsent
     PreviousDisableProtectedAudioDG = $firstProtected
+    CreatedValues = $createdValues
     LastPlans = $plans
 } | ConvertTo-Json -Depth 6 | Set-Content -Path $StateFile -Encoding UTF8
 
