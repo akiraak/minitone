@@ -188,13 +188,14 @@ main {
 }
 
 /* 電源の列と BASS の列の間の縦線。暗い線と明るい線を 1 px ずつ並べ、パネルに彫った溝に見せる。
-   位置は、電源の列（72 px）と、列の間の空き（19.5 px）のまんなか。上と下は 8 px ずつ空ける。 */
+   位置は、電源の列（72 px）と、列の間の空き（19.5 px）のまんなか。
+   ウィンドウの上の端から下の端まで通す（body の上下の余白の分だけ、外にはみ出させる）。 */
 main::before {
   content: "";
   position: absolute;
   left: 81px;
-  top: 8px;
-  bottom: 8px;
+  top: -14px;
+  bottom: -12px;
   width: 2px;
   background: linear-gradient(90deg, #0d0e10 50%, #44474f 50%);
 }
