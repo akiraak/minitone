@@ -3,6 +3,8 @@
 //! ```text
 //! enabled=1
 //! volume=1.250
+//! preamp=0.0
+//! limit=1
 //! lowshelf=150,6.0,0.707
 //! highshelf=5000,-3.0,0.707
 //! ```
@@ -17,6 +19,10 @@ pub const TREBLE_HZ: f64 = 5000.0;
 pub const SHELF_Q: f64 = 0.707;
 /// Treble と Bass の幅（dB）。APO 側の上限は ±24。
 pub const MAX_TONE_DB: f64 = 20.0;
+/// Treble や Bass を上げたときに、全体を下げる量の上限（dB）。
+/// 0 なら全体は下げず、上げ幅の調整を APO の `limit=1` だけに任せる。
+/// 大きくすると、大きい音の場面での上げ幅が増える代わりに、全体が小さくなる。
+pub const STATIC_HEADROOM_CAP_DB: f64 = 0.0;
 /// Volume の上限（%）。100 が元の音量。
 pub const MAX_VOLUME_PERCENT: f64 = 150.0;
 
@@ -71,13 +77,33 @@ impl EqState {
         }
     }
 
+    /// Treble や Bass を上げたときに、全体を下げる量（dB、0 以下）。
+    ///
+    /// 上げたままにすると、音がデジタルの上限を超え、Windows のリミッターが全体の音量を
+    /// 自動で下げて、音が揺れる（2026-11-19 に確認）。これを防ぐ仕組みは 2 つある。
+    ///
+    /// - APO の `limit=1`: 上げた帯域の音が大きい瞬間だけ、その帯域の上げ幅を減らす。
+    ///   全体の音量は下がらない。こちらが主役。
+    /// - ここで決める量: 先に全体を下げて余裕を作る。大きい音の場面でも上げ幅が残るが、
+    ///   全体が小さくなる。上げた量と STATIC_HEADROOM_CAP_DB の小さいほうだけ下げる。
+    pub fn headroom_db(&self) -> f64 {
+        let state = self.sanitized();
+        let boost = state.treble.max(state.bass).max(0.0).min(STATIC_HEADROOM_CAP_DB);
+        if boost > 0.0 {
+            -boost
+        } else {
+            0.0
+        }
+    }
+
     /// 設定ファイルの中身にする。
     pub fn to_file_text(&self) -> String {
         let state = self.sanitized();
         format!(
-            "enabled={}\nvolume={:.3}\nlowshelf={},{:.1},{}\nhighshelf={},{:.1},{}\n",
+            "enabled={}\nvolume={:.3}\npreamp={:.1}\nlimit=1\nlowshelf={},{:.1},{}\nhighshelf={},{:.1},{}\n",
             if state.enabled { 1 } else { 0 },
             state.volume / 100.0,
+            state.headroom_db(),
             BASS_HZ,
             state.bass,
             SHELF_Q,
@@ -88,6 +114,7 @@ impl EqState {
     }
 
     /// 設定ファイルの中身から読む。読めない行、画面に無い項目の行は捨てる。
+    /// `preamp` は Treble と Bass から決まる値なので、読まない。
     pub fn from_file_text(text: &str) -> Self {
         let mut state = EqState::flat();
         for line in text.trim_start_matches('\u{feff}').lines() {
@@ -153,8 +180,26 @@ mod tests {
         };
         assert_eq!(
             state.to_file_text(),
-            "enabled=1\nvolume=1.250\nlowshelf=150,6.0,0.707\nhighshelf=5000,-3.0,0.707\n"
+            "enabled=1\nvolume=1.250\npreamp=0.0\nlimit=1\nlowshelf=150,6.0,0.707\nhighshelf=5000,-3.0,0.707\n"
         );
+    }
+
+    #[test]
+    fn static_headroom_never_exceeds_its_cap() {
+        let state = |treble: f64, bass: f64| EqState { enabled: true, treble, bass, volume: 100.0 };
+        // 上げていなければ下げない。
+        assert_eq!(state(0.0, 0.0).headroom_db(), 0.0);
+        assert_eq!(state(-8.0, -20.0).headroom_db(), 0.0);
+        // 上げたときは、上げた量と上限の小さいほうだけ下げる。
+        for (treble, bass) in [(6.0, 0.0), (-3.0, 12.5), (20.0, 9.0)] {
+            let expected = -f64::max(treble, bass).min(STATIC_HEADROOM_CAP_DB);
+            assert_eq!(state(treble, bass).headroom_db(), if expected == 0.0 { 0.0 } else { expected });
+        }
+        // "-0.0" とは書かない。
+        assert!(!state(0.0, -5.0).to_file_text().contains("preamp=-0.0"));
+        assert!(!state(20.0, 20.0).to_file_text().contains("preamp=-0.0"));
+        // 上げ幅を抑える指定を、いつも書く。
+        assert!(state(20.0, 20.0).to_file_text().contains("\nlimit=1\n"));
     }
 
     #[test]

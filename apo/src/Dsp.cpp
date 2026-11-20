@@ -20,6 +20,8 @@ const double kMinQ = 0.1;
 const double kMaxQ = 20.0;
 const double kMaxVolume = 4.0;
 const double kGainSmoothingSeconds = 0.010;
+// 抑えた上げ幅が元へ戻る速さ。短いと低音の波形そのものを歪ませ、長いと上げ幅が戻るのが遅い。
+const double kBoostReleaseSeconds = 0.250;
 
 double DbToLinear(double db)
 {
@@ -92,6 +94,12 @@ void ParseLine(const char* begin, const char* end, Settings* settings)
         if (ParseNumber(value, end, &number) && number >= 0.0 && number <= kMaxVolume)
             settings->volume = number;
     }
+    else if (KeyIs(begin, keyEnd, "limit"))
+    {
+        double number = 0.0;
+        if (ParseNumber(value, end, &number))
+            settings->limitBoost = (number != 0.0);
+    }
     else if (KeyIs(begin, keyEnd, "band") || KeyIs(begin, keyEnd, "lowshelf") ||
              KeyIs(begin, keyEnd, "highshelf"))
     {
@@ -136,6 +144,7 @@ Settings BypassSettings()
     settings.enabled = false;
     settings.preampDb = 0.0;
     settings.volume = 1.0;
+    settings.limitBoost = false;
     settings.bandCount = 0;
     return settings;
 }
@@ -220,8 +229,17 @@ Biquad MakeHighShelf(double sampleRate, double frequencyHz, double gainDb, doubl
 }
 
 Processor::Processor()
-    : bypassed_(true), channels_(0), bandCount_(0), targetGain_(1.0), currentGain_(1.0), gainStep_(1.0)
+    : bypassed_(true),
+      channels_(0),
+      bandCount_(0),
+      targetGain_(1.0),
+      currentGain_(1.0),
+      gainStep_(1.0),
+      boostAmount_(1.0),
+      boostRelease_(1.0)
 {
+    for (int i = 0; i < kMaxBands; ++i)
+        limited_[i] = false;
     memset(coefficients_, 0, sizeof(coefficients_));
     memset(z1_, 0, sizeof(z1_));
     memset(z2_, 0, sizeof(z2_));
@@ -231,6 +249,7 @@ void Processor::Configure(const Settings& settings, double sampleRate, unsigned 
 {
     // ナイキスト周波数より上のバンド、増減が 0 のバンドは使わない。
     Biquad coefficients[kMaxBands];
+    bool limited[kMaxBands];
     int bandCount = 0;
     if (settings.enabled && sampleRate > 0.0)
     {
@@ -239,6 +258,7 @@ void Processor::Configure(const Settings& settings, double sampleRate, unsigned 
             const BandSetting& band = settings.bands[i];
             if (band.gainDb == 0.0 || band.frequencyHz >= sampleRate * 0.5)
                 continue;
+            limited[bandCount] = settings.limitBoost && band.gainDb > 0.0;
             switch (band.type)
             {
             case BandType::LowShelf:
@@ -263,7 +283,9 @@ void Processor::Configure(const Settings& settings, double sampleRate, unsigned 
     {
         memset(z1_, 0, sizeof(z1_));
         memset(z2_, 0, sizeof(z2_));
+        boostAmount_ = 1.0;
     }
+    boostRelease_ = (sampleRate > 0.0) ? 1.0 - exp(-1.0 / (kBoostReleaseSeconds * sampleRate)) : 1.0;
 
     // 音量は、素通しから入るときは新しい値から始め、それ以外は前の値からなめらかに動かす。
     // 素通しへ出るときは、次に入るときのために 1.0 に戻しておく。
@@ -276,7 +298,10 @@ void Processor::Configure(const Settings& settings, double sampleRate, unsigned 
     channels_ = channels;
     bandCount_ = bandCount;
     for (int i = 0; i < bandCount; ++i)
+    {
         coefficients_[i] = coefficients[i];
+        limited_[i] = limited[i];
+    }
 }
 
 void Processor::Process(const float* input, float* output, unsigned frames)
@@ -294,23 +319,84 @@ void Processor::Process(const float* input, float* output, unsigned frames)
     const double gainStep = gainStep_;
     double gain = currentGain_;
 
+    const double boostRelease = boostRelease_;
+    double samples[kMaxChannels];
+    double added[kMaxChannels];
+    double amount = boostAmount_;
+    bool anyLimited = false;
+    for (int band = 0; band < bandCount; ++band)
+        anyLimited = anyLimited || limited_[band];
+
     for (unsigned frame = 0; frame < frames; ++frame)
     {
         gain += (targetGain - gain) * gainStep;
         for (unsigned channel = 0; channel < channels; ++channel)
+            samples[channel] = static_cast<double>(input[frame * channels + channel]) * gain;
+
+        // 1. 抑えないバンド（下げているバンドなど）を、順番にかける。
+        for (int band = 0; band < bandCount; ++band)
         {
-            double sample = static_cast<double>(input[frame * channels + channel]) * gain;
+            if (limited_[band])
+                continue;
+            const Biquad& c = coefficients_[band];
+            for (unsigned channel = 0; channel < channels; ++channel)
+            {
+                const double in = samples[channel];
+                const double out = c.b0 * in + z1_[band][channel];
+                z1_[band][channel] = c.b1 * in - c.a1 * out + z2_[band][channel];
+                z2_[band][channel] = c.b2 * in - c.a2 * out;
+                samples[channel] = out;
+            }
+        }
+
+        // 2. 上げ幅を抑えるバンドは、同じ入力に並べてかけ、足される分（フィルタの出力 - 入力）を合計する。
+        //    順番にかけると、先のバンドが余裕を使い切って後のバンドが上がらなくなるため。
+        if (anyLimited)
+        {
+            for (unsigned channel = 0; channel < channels; ++channel)
+                added[channel] = 0.0;
             for (int band = 0; band < bandCount; ++band)
             {
+                if (!limited_[band])
+                    continue;
                 const Biquad& c = coefficients_[band];
-                const double out = c.b0 * sample + z1_[band][channel];
-                z1_[band][channel] = c.b1 * sample - c.a1 * out + z2_[band][channel];
-                z2_[band][channel] = c.b2 * sample - c.a2 * out;
-                sample = out;
+                for (unsigned channel = 0; channel < channels; ++channel)
+                {
+                    const double in = samples[channel];
+                    const double out = c.b0 * in + z1_[band][channel];
+                    z1_[band][channel] = c.b1 * in - c.a1 * out + z2_[band][channel];
+                    z2_[band][channel] = c.b2 * in - c.a2 * out;
+                    added[channel] += out - in;
+                }
             }
-            output[frame * channels + channel] = static_cast<float>(sample);
+
+            // 出力 = 入力 + 割合 x 足される分。どのチャンネルも上限を超えない、いちばん大きい割合を求める。
+            // 左右の音の位置がずれないよう、全チャンネルで同じ割合を使う。
+            double allowed = 1.0;
+            for (unsigned channel = 0; channel < channels; ++channel)
+            {
+                const double size = fabs(added[channel]);
+                const double room = kCeiling - fabs(samples[channel]);
+                if (room <= 0.0)
+                    allowed = 0.0; // 入力がもう上限にある。上げる余地が無い
+                else if (size * allowed > room)
+                    allowed = room / size;
+            }
+
+            // 下げるのはすぐ、戻すのはゆっくり。
+            amount += (1.0 - amount) * boostRelease;
+            if (amount > allowed)
+                amount = allowed;
+
+            for (unsigned channel = 0; channel < channels; ++channel)
+                samples[channel] += amount * added[channel];
         }
+
+        for (unsigned channel = 0; channel < channels; ++channel)
+            output[frame * channels + channel] = static_cast<float>(samples[channel]);
     }
+
+    boostAmount_ = anyLimited ? amount : 1.0;
 
     // 目標にほぼ着いたら、ぴったり合わせる（いつまでも端数を追いかけない）。
     if (fabs(targetGain - gain) < 1e-9)

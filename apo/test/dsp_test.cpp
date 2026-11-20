@@ -299,8 +299,153 @@ static void TestStability()
     CHECK(fabs(last - 1.5f) < 0.001f, "the volume settles at the new value (x %.4f)", last);
 }
 
+// 上げ幅を自動で抑える機能（limit=1）。
+static void TestLimitBoost()
+{
+    static float in[960];
+    static float out[960];
+
+    eq::Settings parsed = Parse("enabled=1\nlimit=1\nlowshelf=150,20,0.707\n");
+    CHECK(parsed.limitBoost, "parse: limit=1");
+    CHECK(!Parse("enabled=1\nlowshelf=150,20,0.707\n").limitBoost, "parse: limit is off by default");
+
+    // 小さい音は、設定どおりに上がる（抑えない）。
+    double quiet = 0.0;
+    {
+        eq::Processor processor;
+        processor.Configure(parsed, 48000.0, 2);
+        double sumIn = 0.0, sumOut = 0.0;
+        for (int block = 0; block < 200; ++block)
+        {
+            for (int i = 0; i < 480; ++i)
+            {
+                float v = static_cast<float>(0.01 * sin(2.0 * kPi * 40.0 * (block * 480 + i) / 48000.0));
+                in[i * 2] = in[i * 2 + 1] = v;
+            }
+            processor.Process(in, out, 480);
+            if (block >= 100)
+                for (int i = 0; i < 480; ++i)
+                {
+                    sumIn += static_cast<double>(in[i * 2]) * in[i * 2];
+                    sumOut += static_cast<double>(out[i * 2]) * out[i * 2];
+                }
+        }
+        quiet = 10.0 * log10(sumOut / sumIn);
+    }
+    CHECK(fabs(quiet - 20.0) < 0.3, "limit: a quiet 40 Hz tone still gets the full boost (%.2f dB)", quiet);
+
+    // 上限いっぱいの低音に +20 dB: 出力は上限を超えない。抑えないと 10 倍になる。
+    {
+        eq::Processor limited;
+        eq::Processor unlimited;
+        limited.Configure(parsed, 48000.0, 2);
+        unlimited.Configure(Parse("enabled=1\nlowshelf=150,20,0.707\n"), 48000.0, 2);
+        double peakLimited = 0.0, peakUnlimited = 0.0;
+        for (int block = 0; block < 100; ++block)
+        {
+            for (int i = 0; i < 480; ++i)
+            {
+                float v = static_cast<float>(0.9 * sin(2.0 * kPi * 40.0 * (block * 480 + i) / 48000.0));
+                in[i * 2] = in[i * 2 + 1] = v;
+            }
+            limited.Process(in, out, 480);
+            for (int i = 0; i < 960; ++i)
+                if (fabs(out[i]) > peakLimited)
+                    peakLimited = fabs(out[i]);
+            unlimited.Process(in, out, 480);
+            for (int i = 0; i < 960; ++i)
+                if (fabs(out[i]) > peakUnlimited)
+                    peakUnlimited = fabs(out[i]);
+        }
+        CHECK(peakLimited <= eq::kCeiling + 1e-6, "limit: a loud 40 Hz tone stays under the ceiling (peak = %.4f)",
+              peakLimited);
+        CHECK(peakLimited >= 0.9, "limit: the loud tone is not turned down below its input level (peak = %.4f)",
+              peakLimited);
+        CHECK(peakUnlimited > 5.0, "limit off: the same tone goes far over full scale (peak = %.2f)", peakUnlimited);
+    }
+
+    // 低音と高音を両方 +20 dB、上限に近い雑音: 出力は上限を超えない。チャンネルごとに違う信号。
+    {
+        eq::Processor processor;
+        processor.Configure(Parse("enabled=1\nlimit=1\npreamp=-6\nlowshelf=150,20,0.707\nhighshelf=5000,20,0.707\n"),
+                            44100.0, 2);
+        unsigned seed = 777;
+        double peak = 0.0;
+        for (int block = 0; block < 400; ++block)
+        {
+            for (int i = 0; i < 960; ++i)
+            {
+                seed = seed * 1664525u + 1013904223u;
+                in[i] = static_cast<float>(static_cast<int>(seed >> 8) % 20001 - 10000) / 10000.0f * 1.9f;
+            }
+            processor.Process(in, out, 480);
+            for (int i = 0; i < 960; ++i)
+                if (fabs(out[i]) > peak)
+                    peak = fabs(out[i]);
+        }
+        CHECK(peak <= eq::kCeiling + 1e-6, "limit: bass and treble +20 dB on near-full-scale noise stay under the ceiling (peak = %.4f)", peak);
+    }
+
+    // 大きい中音（1 kHz）は、低音を上げても下がらない。全体の音量を下げていないことの確認。
+    {
+        eq::Processor processor;
+        processor.Configure(parsed, 48000.0, 2);
+        double sumIn = 0.0, sumOut = 0.0;
+        for (int block = 0; block < 200; ++block)
+        {
+            for (int i = 0; i < 480; ++i)
+            {
+                float v = static_cast<float>(0.9 * sin(2.0 * kPi * 1000.0 * (block * 480 + i) / 48000.0));
+                in[i * 2] = in[i * 2 + 1] = v;
+            }
+            processor.Process(in, out, 480);
+            if (block >= 100)
+                for (int i = 0; i < 480; ++i)
+                {
+                    sumIn += static_cast<double>(in[i * 2]) * in[i * 2];
+                    sumOut += static_cast<double>(out[i * 2]) * out[i * 2];
+                }
+        }
+        double middle = 10.0 * log10(sumOut / sumIn);
+        CHECK(fabs(middle) < 0.2, "limit: a loud 1 kHz tone keeps its level when the bass is boosted (%.3f dB)", middle);
+    }
+
+    // 下げているバンドは抑える対象にしない（ふつうのフィルタと同じ結果になる）。
+    {
+        double a = MeasureGainDb(Parse("enabled=1\nlimit=1\nhighshelf=5000,-10,0.707\n"), 48000.0, 20000.0, 2);
+        double b = MeasureGainDb(Parse("enabled=1\nhighshelf=5000,-10,0.707\n"), 48000.0, 20000.0, 2);
+        CHECK(fabs(a - b) < 1e-9, "limit: cuts are not affected (%.3f dB)", a);
+    }
+
+    // 抑えたあと、音が小さくなれば上げ幅は元に戻る。
+    {
+        eq::Processor processor;
+        processor.Configure(parsed, 48000.0, 2);
+        double sumIn = 0.0, sumOut = 0.0;
+        for (int block = 0; block < 400; ++block)
+        {
+            const double level = (block < 100) ? 0.9 : 0.01; // 1 秒大きく鳴らし、そのあと小さくする
+            for (int i = 0; i < 480; ++i)
+            {
+                float v = static_cast<float>(level * sin(2.0 * kPi * 40.0 * (block * 480 + i) / 48000.0));
+                in[i * 2] = in[i * 2 + 1] = v;
+            }
+            processor.Process(in, out, 480);
+            if (block >= 300) // 小さくしてから 2 秒後
+                for (int i = 0; i < 480; ++i)
+                {
+                    sumIn += static_cast<double>(in[i * 2]) * in[i * 2];
+                    sumOut += static_cast<double>(out[i * 2]) * out[i * 2];
+                }
+        }
+        double recovered = 10.0 * log10(sumOut / sumIn);
+        CHECK(fabs(recovered - 20.0) < 0.3, "limit: the boost comes back after the loud part ends (%.2f dB)", recovered);
+    }
+}
+
 int main()
 {
+    TestLimitBoost();
     TestParse();
     TestResponse();
     TestBypass();
