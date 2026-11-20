@@ -24,10 +24,6 @@ let attaching = false;
 let attachError = "";
 const knobs = {};
 
-// 画面の文の言語。Rust 側が Windows の表示言語から決める（"ja" か "en"）。
-let lang = "en";
-const t = (en, ja) => (lang === "ja" ? ja : en);
-
 function formatDb(value) {
   const rounded = Math.round(value * 10) / 10;
   return (rounded > 0 ? "+" : rounded < 0 ? "−" : "") + Math.abs(rounded).toFixed(1) + " dB";
@@ -164,8 +160,6 @@ async function save() {
 async function load() {
   const payload = await invoke("get_state");
   state = payload.state;
-  lang = payload.lang;
-  document.documentElement.lang = lang;
 
   const tone = payload.maxToneDb;
   setupKnob({ key: "treble", min: -tone, max: tone, step: 0.5, reset: 0, detent: 0, format: formatDb });
@@ -190,13 +184,10 @@ function renderDevice() {
   let text = "";
   let canAttach = false;
   if (device && !device.apoRegistered) {
-    text = t(
-      "The audio component is not installed. Run the installer again.",
-      "音を処理する部品が入っていません。インストーラで入れ直してください。"
-    );
+    text = "The audio component is not installed. Run the installer again.";
   } else if (device && device.deviceId && !device.attached) {
-    const name = device.deviceName || t("the current output device", "いまの出力デバイス");
-    text = attachError || t(`Not active on ${name} yet.`, `「${name}」には、まだ効きません。`);
+    const name = device.deviceName || "the current output device";
+    text = attachError || `Not active on ${name} yet.`;
     canAttach = true;
   }
   noticeElement.hidden = text === "";
@@ -204,7 +195,7 @@ function renderDevice() {
   noticeText.title = text;
   attachButton.hidden = !canAttach;
   attachButton.disabled = attaching;
-  attachButton.textContent = attaching ? t("Enabling…", "取り付け中…") : t("Enable", "効くようにする");
+  attachButton.textContent = attaching ? "Enabling…" : "Enable";
 }
 
 // 取り付ける。Windows の確認（UAC）が出て、音が一度止まる。

@@ -12,7 +12,6 @@ Work in progress. It has only been run on the author's PC (Windows 11 25H2, x64)
 
 - What it does: Treble and Bass by ±20 dB, Volume from 0 to 150%. One button returns to the original sound. It stays in the system tray.
 - The installer is on the [Releases](https://github.com/akiraak/minitone/releases) page.
-- The app is in English, or in Japanese when the Windows display language is Japanese.
 - See [Not verified](#not-verified) for what has not been tested.
 
 ## Before you install
@@ -135,7 +134,6 @@ powershell -ExecutionPolicy Bypass -File .\uninstall-apo.ps1
 ## Not verified
 
 - Any PC other than the author's. (Install, install over an existing version, and uninstall restoring the previous state were verified on the author's PC.)
-- Whether DRM-protected playback (streaming services and so on) still produces sound
 
 ## Troubleshooting
 

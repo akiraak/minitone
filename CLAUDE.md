@@ -68,14 +68,13 @@
 - `app/build.ps1` — 画面のアプリのテストとビルド。
 - `app/build-installer.ps1` — 使う人向けのインストーラ（NSIS の `setup.exe`）をビルドする。
 - `app/src-tauri/installer-hooks.nsh` — インストーラのフック。インストールの前に Arm64 の Windows なら止める。インストールの後に `install-apo.ps1 -AllDevices`、アンインストールの前に `uninstall-apo.ps1` を呼ぶ。
-- `app/src-tauri/src/texts.rs` — 画面の文の言語の判定（`tr(英語, 日本語)`）。
 - `app/third-party-notices.ps1` — 同梱しているクレートの権利の表記を `app/src-tauri/gen/THIRD-PARTY-NOTICES.txt` に集める。`app/build.ps1` と `app/build-installer.ps1` が呼ぶ。インストーラに同梱する。
 - `docs/images/` — README に載せる画面の絵。
 
 ## 配布（2026-11-20）
 
 - README.md は英語で書く。
-- **画面の文（知らせ、トレイのメニュー、エラー）は、Windows の表示言語が日本語なら日本語、それ以外は英語。** 文を足すときは、Rust は `texts::tr("English", "日本語")`、JavaScript は `t("English", "日本語")` で両方を書く。確認用に、環境変数 `MINITONE_LANG`（`ja` / `en`）で切り替えられる。
+- **画面の文（知らせ、トレイのメニュー、エラー）は英語だけ。** 日本語の表示は持たない（2026-11-20 にユーザーが決定。いったん Windows の表示言語で切り替える作りにしたが、やめた）。コードのコメントは日本語のまま。
 - 登録と解除のスクリプト（`apo/scripts/*.ps1`）が表示する文は英語（インストーラのログに出て、使う人が読むため）。コメントは日本語のまま。
 - **インストーラは署名しない**（2026-11-20 にユーザーが決定）。SmartScreen の警告が出ることは README に書いてある。
 - **Windows の起動で自動的に常駐させない**（2026-11-20 にユーザーが決定）。APO は設定ファイルを読むので、アプリが動いていなくても音には効く。
