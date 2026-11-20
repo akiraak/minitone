@@ -23,7 +23,7 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 14px 26px 12px;
+  padding: 14px 0 12px;
   background: linear-gradient(180deg, var(--panel-top) 0%, var(--panel-bottom) 100%);
   color: var(--text);
   font-family: "Segoe UI", "Yu Gothic UI", system-ui, sans-serif;
@@ -139,22 +139,25 @@ main {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
   min-height: 0;
 }
 
+/* 横の並び（ウィンドウの幅 688 px）:
+   電源の区画 92 px、縦線 2 px、そのあと「空き 26 px + ツマミ 116 px」が 4 つ、右の端の空き 26 px。 */
 .control {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 5px;
-  width: 132px;
+  width: 116px;
+  margin-left: 26px;
 }
 
-/* 電源の列は、上から 電源のボタン、POWER、ON / OFF、RESET。 */
+/* 電源の列は、上から 電源のボタン、POWER、ON / OFF、RESET。区画のまんなかに置く。 */
 .control.power {
-  width: 72px;
+  width: 92px;
+  margin-left: 0;
+  margin-right: 2px;
   gap: 4px;
 }
 
@@ -188,12 +191,12 @@ main {
 }
 
 /* 電源の列と BASS の列の間の縦線。暗い線と明るい線を 1 px ずつ並べ、パネルに彫った溝に見せる。
-   位置は、電源の列（72 px）と、列の間の空き（19.5 px）のまんなか。
+   位置は、電源の区画（92 px）のすぐ右。
    ウィンドウの上の端と下の端から 8 px ずつ空ける（body の上下の余白 14 px と 12 px の中に、はみ出させる）。 */
 main::before {
   content: "";
   position: absolute;
-  left: 81px;
+  left: 92px;
   top: -6px;
   bottom: -4px;
   width: 2px;
