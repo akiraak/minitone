@@ -33,7 +33,7 @@
       "icons/icon.png"
     ],
     "publisher": "akiraak",
-    "shortDescription": "Treble, Bass and Volume knobs for all Windows audio",
+    "shortDescription": "Bass, Mid, Treble and Volume knobs for all Windows audio",
     "license": "MIT",
     "resources": {
       "../../apo/build/minitone_apo.dll": "apo/minitone_apo.dll",

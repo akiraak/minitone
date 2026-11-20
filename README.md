@@ -1,8 +1,8 @@
 # MiniTone
 
-Treble, Bass and Volume knobs for everything that plays on Windows 11. The tone control applies to all audio — browsers, games, music players — not to one app.
+Bass, Mid, Treble and Volume knobs for everything that plays on Windows 11. The tone control applies to all audio — browsers, games, music players — not to one app.
 
-![The MiniTone window: a power button and Treble, Bass and Volume knobs](docs/images/minitone.png)
+![The MiniTone window: a power button and tone and volume knobs](docs/images/minitone.png)
 
 MiniTone installs its own Audio Processing Object (APO) into the Windows audio engine. **Read [Before you install](#before-you-install) first**: it turns off a Windows signature check and changes the audio path.
 
@@ -10,7 +10,7 @@ MiniTone installs its own Audio Processing Object (APO) into the Windows audio e
 
 Work in progress. It has only been run on the author's PC (Windows 11 25H2, x64).
 
-- What it does: Treble and Bass by ±20 dB, Volume from 0 to 150%. One button returns to the original sound. It stays in the system tray.
+- What it does: Bass, Mid and Treble by ±20 dB, Volume from 0 to 150%. One button returns to the original sound. It stays in the system tray.
 - The installer is on the [Releases](https://github.com/akiraak/minitone/releases) page.
 - See [Not verified](#not-verified) for what has not been tested.
 
@@ -44,6 +44,7 @@ volume=1.250
 preamp=0.0
 limit=1
 lowshelf=150,6.0,0.707
+band=2000,2.0,0.7
 highshelf=5000,-3.0,0.707
 ```
 
@@ -55,7 +56,7 @@ highshelf=5000,-3.0,0.707
 | `limit` | 1 = automatically reduce the boost of boosted filters so that the output stays below full scale |
 | `lowshelf` | Bass. Frequency (Hz), gain (dB), Q. Raises or lowers everything below the frequency |
 | `highshelf` | Treble. Raises or lowers everything above the frequency |
-| `band` | Raises or lowers only the area around a center frequency. The app does not use it, but it works if you write it by hand |
+| `band` | Mid. Raises or lowers only the area around a center frequency. The app writes one at 2 kHz; more work if you write them by hand |
 
 If the file is missing or broken, audio passes through unchanged.
 
@@ -126,7 +127,7 @@ powershell -ExecutionPolicy Bypass -File .\uninstall-apo.ps1
 - **The APO has to be attached to each output device.** A device you start using after the install (a new Bluetooth headset, for example) is not affected at first. The app shows a notice that it does not work on that device yet; press "Enable" in the notice and answer "Yes" to the Windows prompt. This is needed once per device, and sound stops for a moment.
 - **Reinstalling a driver detaches it**, because the device gets a new ID. A major Windows update can also detach it.
 - **Some audio is not affected.** Apps that play in exclusive mode, through ASIO, or in RAW mode bypass the APO.
-- **In loud passages, the Treble and Bass boost is reduced.** A full boost would push the signal past digital full scale, the Windows limiter would kick in, and the overall volume would waver. To prevent this, the APO automatically reduces the boost of the boosted band so that the output stays below full scale. The overall volume does not change, and quiet passages get the full boost.
+- **In loud passages, the Bass, Mid and Treble boost is reduced.** A full boost would push the signal past digital full scale, the Windows limiter would kick in, and the overall volume would waver. To prevent this, the APO automatically reduces the boost of the boosted band so that the output stays below full scale. The overall volume does not change, and quiet passages get the full boost.
 - **Volume above 100% can make the sound waver or distort** on loud material, because it exceeds full scale.
 - The settings are shared by all output devices. Speakers and headphones cannot have separate settings.
 - If a driver registers its APO in the old format (one APO per stage) and that stage is already taken, MiniTone does not attach to that device.

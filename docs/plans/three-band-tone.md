@@ -92,6 +92,10 @@
 - APO は変えていない。入れてある版の APO が、そのまま `band` の行を読む。
 - README、画面の絵、`CLAUDE.md` の要件は、案が決まってから直す。
 
+## 決定（2026-11-20）
+
+調べた結果を見て、ユーザーが「2 kHz で 20 dB で中音を入れて」と決めた。B 案（BASS、MID、TREBLE、VOLUME の 4 つ）で、MID は 2 kHz を中心に ±20 dB、Q は 0.7（およそ 1 〜 4 kHz に効く）。試し版の 1 kHz から変えた。README と `CLAUDE.md` の要件を直した。
+
 ## 影響範囲（B を選んだ場合）
 
 - `app/src-tauri/src/settings.rs`（状態、設定ファイルの読み書き、テスト）、`app/ui/`（ツマミ、ウィンドウの幅）、`tauri.conf.json`（ウィンドウの幅）、README と画面の絵、`CLAUDE.md` の要件。

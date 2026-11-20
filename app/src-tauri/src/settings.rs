@@ -6,7 +6,7 @@
 //! preamp=0.0
 //! limit=1
 //! lowshelf=150,6.0,0.707
-//! band=1000,2.0,0.7
+//! band=2000,2.0,0.7
 //! highshelf=5000,-3.0,0.707
 //! ```
 
@@ -15,8 +15,8 @@ use serde::{Deserialize, Serialize};
 /// Bass のツマミが効き始める周波数（Hz）。これより下をまとめて上げ下げする。
 pub const BASS_HZ: f64 = 150.0;
 /// Mid のツマミの中心の周波数（Hz）。この周りだけを上げ下げする。
-pub const MID_HZ: f64 = 1000.0;
-/// Mid のフィルタの Q。0.7 なら、およそ 400 Hz 〜 2.5 kHz に効き、Bass と Treble のあいだを埋める。
+pub const MID_HZ: f64 = 2000.0;
+/// Mid のフィルタの Q。0.7 なら、およそ 1 〜 4 kHz（声の聞き取りに効く帯域）に効く。
 pub const MID_Q: f64 = 0.7;
 /// Treble のツマミが効き始める周波数（Hz）。これより上をまとめて上げ下げする。
 pub const TREBLE_HZ: f64 = 5000.0;
@@ -200,7 +200,7 @@ mod tests {
         };
         assert_eq!(
             state.to_file_text(),
-            "enabled=1\nvolume=1.250\npreamp=0.0\nlimit=1\nlowshelf=150,6.0,0.707\nband=1000,2.0,0.7\nhighshelf=5000,-3.0,0.707\n"
+            "enabled=1\nvolume=1.250\npreamp=0.0\nlimit=1\nlowshelf=150,6.0,0.707\nband=2000,2.0,0.7\nhighshelf=5000,-3.0,0.707\n"
         );
     }
 
@@ -251,7 +251,7 @@ mod tests {
 
     #[test]
     fn reads_files_written_by_hand() {
-        let text = "\u{feff}# comment\r\nenabled=1\r\nvolume = 0.5\r\nlowshelf=80,23,0.9\r\nband=1000,5,1\r\nband=3000,9,1\r\ngarbage\r\nhighshelf=1,2\r\n";
+        let text = "\u{feff}# comment\r\nenabled=1\r\nvolume = 0.5\r\nlowshelf=80,23,0.9\r\nband=2000,5,1\r\nband=3000,9,1\r\ngarbage\r\nhighshelf=1,2\r\n";
         let state = EqState::from_file_text(text);
         assert!(state.enabled);
         assert_eq!(state.volume, 50.0);
