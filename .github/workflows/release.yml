@@ -1,0 +1,102 @@
+# タグ（v0.1.1 など）をプッシュすると、テストを走らせてインストーラをビルドし、
+# GitHub の Releases に下書きとして置く。下書きは、インストーラを落として確かめてから、手で公開する。
+# 「Run workflow」から手で動かすと、ビルドとテストだけを行い、インストーラを Artifacts に置く（Releases には触らない）。
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        # ビルドのスクリプトは Windows PowerShell 5.1 向け（BOM 付きの UTF-8）。
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v4
+
+      # タグとバージョン（tauri.conf.json、Cargo.toml）が合っていなければ止める。
+      - name: Check that the tag matches the version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          $conf = (Get-Content app\src-tauri\tauri.conf.json -Raw -Encoding UTF8 | ConvertFrom-Json).version
+          $cargo = [regex]::Match((Get-Content app\src-tauri\Cargo.toml -Raw), '(?m)^version\s*=\s*"([^"]+)"').Groups[1].Value
+          "tag=$env:GITHUB_REF_NAME tauri.conf.json=$conf Cargo.toml=$cargo"
+          if ("v$conf" -ne $env:GITHUB_REF_NAME -or $conf -ne $cargo) { throw 'The tag and the versions do not match.' }
+
+      - name: Update Rust
+        run: |
+          rustup update stable --no-self-update
+          rustup default stable
+          rustc --version
+
+      # Tauri の CLI は、ビルドのスクリプトが決めた場所（%LOCALAPPDATA%\akiraak-minitone-dev\tools）に入れる。
+      # ビルドに 10 分ほどかかるので、キャッシュする。
+      - name: Cache the Tauri CLI
+        id: tauri-cli
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\akiraak-minitone-dev\tools
+          key: tauri-cli-2-${{ runner.os }}-v1
+
+      - name: Install the Tauri CLI
+        if: steps.tauri-cli.outputs.cache-hit != 'true'
+        run: cargo install tauri-cli --version "^2" --locked --root "$env:LOCALAPPDATA\akiraak-minitone-dev\tools"
+
+      - name: Cache the Rust build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\.cargo\registry
+            ~\.cargo\git
+            ~\AppData\Local\akiraak-minitone-dev\target
+          key: rust-${{ runner.os }}-${{ hashFiles('app/src-tauri/Cargo.lock') }}
+          restore-keys: rust-${{ runner.os }}-
+
+      - name: Build and test the APO
+        run: .\apo\build.ps1
+
+      # スクリプトは、できたものをユーザーの「ダウンロード」フォルダに置く。無ければ作っておく。
+      - name: Build and test the app
+        run: |
+          New-Item -ItemType Directory -Force -Path (Join-Path $env:USERPROFILE 'Downloads') | Out-Null
+          .\app\build.ps1
+
+      - name: Build the installer
+        run: .\app\build-installer.ps1
+
+      - name: Collect the installer
+        id: installer
+        run: |
+          $setup = Get-ChildItem "$env:LOCALAPPDATA\akiraak-minitone-dev\target\release\bundle\nsis" -Filter '*-setup.exe' |
+              Sort-Object LastWriteTime | Select-Object -Last 1
+          if (-not $setup) { throw 'The installer was not built.' }
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item $setup.FullName dist\MiniTone-setup.exe -Force
+          $hash = (Get-FileHash dist\MiniTone-setup.exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  MiniTone-setup.exe"
+          "sha256=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding ascii
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MiniTone-setup
+          path: dist/MiniTone-setup.exe
+          if-no-files-found: error
+
+      # 下書きで作る。インストーラを落として確かめてから、Releases の画面で公開する。
+      - name: Create a draft release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA256: ${{ steps.installer.outputs.sha256 }}
+        run: |
+          $notes = "SHA-256 of ``MiniTone-setup.exe``: ``$env:SHA256```n`nBuilt by GitHub Actions from this tag."
+          gh release create $env:GITHUB_REF_NAME dist\MiniTone-setup.exe --draft --title "MiniTone $($env:GITHUB_REF_NAME.TrimStart('v'))" --notes $notes --generate-notes
+          if ($LASTEXITCODE -ne 0) { throw "gh release create failed (exit=$LASTEXITCODE)." }

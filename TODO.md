@@ -57,5 +57,7 @@
   - [x] GitHub のリポジトリの説明とトピックを書き、README に画面の絵を入れる
   - [x] README に、不具合の報告のしかたと「困ったとき」を書く
   - [x] Windows の起動で自動的に常駐させるかを決める（2026-11-20、ユーザーが「常駐させない」と決定）
-  - [ ] GitHub Actions で、タグからインストーラをビルドして Releases に置く
+  - [~] GitHub Actions で、タグからインストーラをビルドして Releases に置く [plan](docs/plans/github-actions.md)
+    - [ ] ワークフローを書き、手で動かしてビルドとテストが通ることを確かめる
+    - [ ] 次の版のタグで、Releases に下書きができることを確かめる
   - [ ] winget に登録する（Releases が安定してから）
