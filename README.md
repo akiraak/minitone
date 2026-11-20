@@ -9,7 +9,7 @@ A system-wide tone control for Windows 11: Treble, Bass and Volume knobs that ap
 開発中。作者の PC（Windows 11 25H2、x64）1 台でだけ動かしている。
 
 - できること: Treble と Bass を ±20 dB、Volume を 0〜150% で動かす。ボタン 1 つでオリジナルの音に戻す。タスクトレイに常駐する
-- まだ無いもの: 使う人向けのインストーラ。いまは開発用のスクリプトを管理者の PowerShell で動かして入れる
+- インストーラ（`equalizer-setup.exe`）は自分でビルドする。ビルド済みのものは配っていない
 - 確かめていないこと: 下の「確かめていないこと」を見ること
 
 ## 入れる前に知っておくこと
@@ -69,47 +69,55 @@ Windows の PowerShell で実行する。
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File apo\build.ps1
-powershell -ExecutionPolicy Bypass -File app\build.ps1
+powershell -ExecutionPolicy Bypass -File app\build-installer.ps1
 ```
 
 - `apo\build.ps1` は DLL をビルドし、テストを走らせる。
-- `app\build.ps1` はテストを走らせ、画面のアプリをビルドする。
-- どちらも、できたものを `%LOCALAPPDATA%\akiraak-equalizer-dev` に置く（DLL、登録と解除のスクリプト、`equalizer.exe`）。
+- `app\build-installer.ps1` は、画面のアプリをビルドし、DLL と登録のスクリプトを同梱したインストーラを作る。
+  - Tauri の CLI（バージョン 2）が要る。入れ方はスクリプトの先頭に書いてある。
+- できたインストーラは、「ダウンロード」フォルダの `equalizer-setup.exe`。
+- 画面のアプリだけをビルドして試すときは `app\build.ps1`。「ダウンロード」フォルダに `equalizer.exe` ができる。
+- ビルドの途中のファイルと、開発用の登録のスクリプトは `%LOCALAPPDATA%\akiraak-equalizer-dev` に置かれる。
 
 ## 入れる
 
-管理者の PowerShell で実行する。
+`equalizer-setup.exe` を実行する。
 
-```powershell
-cd $env:LOCALAPPDATA\akiraak-equalizer-dev
-powershell -ExecutionPolicy Bypass -File .\install-apo.ps1 -AllDevices
-```
-
-- `-DryRun` を付けると、何も変えずに、行う変更だけを表示する。先にこれで確かめるとよい。
-- `-AllDevices` を付けないと、いまの既定の出力デバイスにだけ取り付ける。
+- 管理者の確認（UAC）が出る。
+- インストーラに署名が無いので、Windows の SmartScreen の警告が出る。「詳細情報」→「実行」で進む。
+- 画面のアプリを `C:\Program Files\equalizer` に置き、APO を登録して、有効な出力デバイス全部に取り付ける。途中で音が一度止まる。
 - 変える前のレジストリを `C:\ProgramData\akiraak-equalizer` に書き出す。
 
-入れたら `equalizer.exe` を起動する。右上のボタンを ON にしてツマミを回すと、音が変わる。
+入れたら、スタートメニューから equalizer を起動する。左端のスイッチを上（ON）にしてツマミを回すと、音が変わる。
 
 - ツマミ: 上下にドラッグ、ホイール、矢印キー。Shift を押しながらドラッグすると細かく動く。ダブルクリックで元の位置（0 dB、100%）に戻る。
 - 閉じるボタンではタスクトレイに残る。終了は、トレイのアイコンを右クリックして「終了」。
 
 ## 元に戻す
 
-管理者の PowerShell で実行する。
+Windows の「設定」→「アプリ」→「インストールされているアプリ」から equalizer をアンインストールする。
+
+出力デバイスから APO を外し、登録を消し、`DisableProtectedAudioDG` を入れる前の状態に戻し、DLL とアプリを消す。入れる前のレジストリの控えと設定は `C:\ProgramData\akiraak-equalizer` に残る。
+
+すぐ音だけ元に戻したいときは、画面のスイッチを OFF にするか、設定ファイルの 1 行目を `enabled=0` にする。
+
+## 開発用のスクリプト
+
+インストーラを使わずに、APO だけを登録・解除できる。管理者の PowerShell で実行する。
 
 ```powershell
 cd $env:LOCALAPPDATA\akiraak-equalizer-dev
+powershell -ExecutionPolicy Bypass -File .\install-apo.ps1 -AllDevices
 powershell -ExecutionPolicy Bypass -File .\uninstall-apo.ps1
 ```
 
-出力デバイスから APO を外し、登録を消し、`DisableProtectedAudioDG` を入れる前の状態に戻し、DLL を消す。入れる前のレジストリの控えは `C:\ProgramData\akiraak-equalizer` に残る。
-
-すぐ音だけ元に戻したいときは、画面のボタンを OFF にするか、設定ファイルの 1 行目を `enabled=0` にする。
+- `-DryRun` を付けると、何も変えずに、行う変更だけを表示する。
+- `install-apo.ps1` は、`-AllDevices` を付けないと、いまの既定の出力デバイスにだけ取り付ける。
+- インストーラも、中でこの 2 つのスクリプトを呼んでいる。
 
 ## 制約
 
-- **出力デバイスごとに取り付けが要る。** 入れたあとで新しく使い始めたデバイス（新しい Bluetooth の機器など）には効かない。`install-apo.ps1 -AllDevices` をもう一度実行する。
+- **出力デバイスごとに取り付けが要る。** 入れたあとで新しく使い始めたデバイス（新しい Bluetooth の機器など）には効かない。インストーラをもう一度実行すると、いまある全部のデバイスに取り付け直す。
 - **ドライバを入れ直すと外れる。** デバイスの ID が変わるため。Windows の大きな更新でも外れることがある。
 - **効かない音がある。** 排他モードや ASIO で再生するアプリ、RAW のモードで再生するアプリの音は、この APO を通らない。
 - **大きい音の場面では、Treble や Bass の上げ幅が減る。** 上げたままだと音がデジタルの上限を超え、Windows のリミッターが働いて全体の音が揺れる。それを防ぐため、上げた帯域の上げ幅を、上限を超えない範囲に自動で抑えている。全体の音量は変わらない。小さい音の場面では、設定どおり上がる。
@@ -121,7 +129,8 @@ powershell -ExecutionPolicy Bypass -File .\uninstall-apo.ps1
 
 - 作者の PC 以外での動作
 - DRM 付きの再生（配信サービスなど）で音が出るか
-- `uninstall-apo.ps1` のあと、レジストリが入れる前と完全に同じに戻るか（APO を外して登録を消すところまでは動かした）
+- アンインストールのあと、レジストリが入れる前と完全に同じに戻るか（APO を外して登録を消すところまでは動かした）
+- インストーラでの入れ方と外し方（ビルドできたところまで）
 - Treble と Bass の効き始める周波数（150 Hz、5 kHz）は仮の値
 
 ## ログ

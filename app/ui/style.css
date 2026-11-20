@@ -20,10 +20,10 @@ body {
 }
 
 body {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 22px 34px 14px;
+  padding: 14px 26px 12px;
   background: linear-gradient(180deg, var(--panel-top) 0%, var(--panel-bottom) 100%);
   color: var(--text);
   font-family: "Segoe UI", "Yu Gothic UI", system-ui, sans-serif;
@@ -31,54 +31,49 @@ body {
   overflow: hidden;
 }
 
-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.brand .name {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.32em;
-}
-
-.led {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #4a4d55;
-}
-
-body.on .led {
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
-}
-
+/* 電源の丸い押しボタン */
 #power {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 0 18px;
-  border: 1px solid var(--line);
-  border-radius: 22px;
-  background: #232429;
-  color: var(--muted);
-  font: inherit;
-  font-size: 13px;
-  letter-spacing: 0.12em;
+  width: 55px;
+  height: 55px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
   cursor: pointer;
 }
 
-#power:hover {
-  border-color: var(--tick);
+#power svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#power .ring {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 3;
+}
+
+#power .body {
+  fill: url(#knob-body);
+  stroke: #5a5d66;
+  stroke-width: 1;
+}
+
+#power .mark {
+  fill: none;
+  stroke: var(--tick);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+body.on #power .ring,
+body.on #power .mark {
+  stroke: var(--accent);
+}
+
+#power:active svg {
+  transform: scale(0.96);
 }
 
 #power:focus-visible,
@@ -87,21 +82,18 @@ body.on .led {
   outline-offset: 3px;
 }
 
-body.on #power {
-  color: var(--text);
-}
-
-body.on #power svg {
-  color: var(--accent);
-}
-
+/* 知らせとエラーは、パネルの上と下の端に重ねて出す（ウィンドウが小さいので、場所を取らない）。 */
 #notice {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   margin: 0;
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 3px 12px;
   background: #5a2a0c;
   color: #ffd9bd;
-  font-size: 12px;
+  font-size: 11px;
+  text-align: center;
 }
 
 main {
@@ -109,7 +101,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 16px;
   min-height: 0;
 }
 
@@ -117,25 +109,28 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  width: 170px;
+  gap: 5px;
+  width: 132px;
 }
 
-.control.large {
-  width: 230px;
+.control.power {
+  width: 72px;
+}
+
+/* ボタンは、ツマミ（116 px）の中心と同じ高さに置く。 */
+.control.power .slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 116px;
 }
 
 .knob {
-  width: 150px;
-  height: 150px;
+  width: 116px;
+  height: 116px;
   border-radius: 50%;
   cursor: grab;
   touch-action: none;
-}
-
-.control.large .knob {
-  width: 204px;
-  height: 204px;
 }
 
 .knob.dragging {
@@ -174,14 +169,14 @@ main {
 
 .label {
   color: var(--muted);
-  font-size: 12px;
-  letter-spacing: 0.28em;
+  font-size: 11px;
+  letter-spacing: 0.26em;
 }
 
 .value {
-  min-height: 24px;
+  min-height: 21px;
   color: var(--accent);
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -197,7 +192,12 @@ body:not(.on) .value {
 }
 
 footer {
-  min-height: 16px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0 12px 1px;
   color: #ffb4a8;
-  font-size: 12px;
+  font-size: 11px;
+  text-align: center;
 }

@@ -1,11 +1,21 @@
 ﻿# 画面のアプリ（Tauri 2）をビルドする。Windows 側の PowerShell で動かす。
 #   build.ps1          テストを走らせてから、リリース版をビルドする
 #   build.ps1 -Run     ビルドのあと、アプリを起動する
-# 出力: %LOCALAPPDATA%\akiraak-equalizer-dev\equalizer.exe
+# 出力: ユーザーの「ダウンロード」フォルダの equalizer.exe（インストールせずに画面だけを試すためのもの）
 param([switch] $Run)
 
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
+
+# 実行して試すファイル（インストーラ、画面のアプリ）は、ユーザーの「ダウンロード」フォルダに置く。
+# エクスプローラーからすぐ開ける場所にするため。場所を移している場合に備えて、Windows に尋ねる。
+function Get-DownloadsFolder {
+    try {
+        $path = (New-Object -ComObject Shell.Application).NameSpace('shell:Downloads').Self.Path
+        if ($path -and (Test-Path $path)) { return $path }
+    } catch { }
+    return (Join-Path $env:USERPROFILE 'Downloads')
+}
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $stage = Join-Path $env:LOCALAPPDATA 'akiraak-equalizer-dev'
@@ -31,7 +41,7 @@ $exit = $LASTEXITCODE
 Remove-Item $bat -ErrorAction SilentlyContinue
 if ($exit -ne 0) { throw "ビルドかテストに失敗した（exit=$exit）。" }
 
-$exe = Join-Path $stage 'equalizer.exe'
+$exe = Join-Path (Get-DownloadsFolder) 'equalizer.exe'
 # 動いている版があると置き換えられないので、先に止める。
 Get-Process -Name equalizer -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe } | Stop-Process -Force
 Start-Sleep -Milliseconds 300

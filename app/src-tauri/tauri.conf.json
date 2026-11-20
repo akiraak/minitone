@@ -12,8 +12,8 @@
       {
         "label": "main",
         "title": "Equalizer",
-        "width": 760,
-        "height": 380,
+        "width": 600,
+        "height": 190,
         "resizable": false,
         "maximizable": false
       }
@@ -23,7 +23,27 @@
     }
   },
   "bundle": {
-    "active": false,
-    "icon": ["icons/icon.ico", "icons/icon.png"]
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "icon": [
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
+    "publisher": "akiraak",
+    "shortDescription": "Treble, Bass and Volume knobs for all Windows audio",
+    "license": "MIT",
+    "resources": {
+      "../../apo/build/equalizer_apo.dll": "apo/equalizer_apo.dll",
+      "../../apo/scripts/install-apo.ps1": "apo/install-apo.ps1",
+      "../../apo/scripts/uninstall-apo.ps1": "apo/uninstall-apo.ps1"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "perMachine",
+        "installerHooks": "./installer-hooks.nsh"
+      }
+    }
   }
 }

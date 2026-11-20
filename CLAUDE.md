@@ -34,6 +34,7 @@
   - Volume は 0〜150%。100% が元の音量。
   - Treble は 5 kHz から上、Bass は 150 Hz から下を ±20 dB。周波数は仮の値。
   - Treble や Bass を上げると、音がデジタルの上限を超え、APO の後ろにある Windows のリミッターが全体を下げて、音が揺れる（2026-11-19 に確認）。これを防ぐため、APO は上げている帯域の上げ幅を、出力が上限を超えない範囲に自動で抑える（設定の `limit=1`）。全体の音量は下げない。大きい音の場面では上げ幅が減り、小さい音の場面では設定どおり上がる。経緯と試算は `docs/plans/archive/tone-wobble.md`。
+- 画面は小さい横長のウィンドウ（600 x 190）。左から、電源の丸い押しボタン（直径 52 px）、TREBLE、BASS、VOLUME。黒いアルミのパネルにオレンジの指針。
 - 画面のデザインは、ハードウェアのアンプの前面パネル（回すツマミ）の雰囲気にする。特定のメーカーの製品のロゴ、名前、見た目そのものは写さない。
 
 ## 経緯
@@ -60,6 +61,8 @@
 - `app/src-tauri/` — 画面のアプリ（Tauri 2、Rust）。`settings.rs` が設定ファイルの書式、`main.rs` がコマンドとタスクトレイ。
 - `app/ui/` — 画面（素の HTML / CSS / JavaScript）。3 つのツマミと入り切りのボタン。
 - `app/build.ps1` — 画面のアプリのテストとビルド。
+- `app/build-installer.ps1` — 使う人向けのインストーラ（NSIS の `setup.exe`）をビルドする。
+- `app/src-tauri/installer-hooks.nsh` — インストーラのフック。インストールの後に `install-apo.ps1 -AllDevices`、アンインストールの前に `uninstall-apo.ps1` を呼ぶ。
 
 ## 設定ファイル
 
@@ -89,7 +92,11 @@ cd /mnt/c && powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath 
 ```
 
 - APO: ビルドのあとにテスト（`dsp_test.exe`、`host_test.exe`）が走る。どちらも最後に `PASS (0 failures)` が出れば成功。
-- 画面のアプリは `app/build.ps1` を同じ形で呼ぶ。`cargo test` のあとにリリース版をビルドし、`%LOCALAPPDATA%\akiraak-equalizer-dev\equalizer.exe` に置く。ビルドの出力（`target`）も同じフォルダに置く（WSL のフォルダに置くと遅い）。
+- 画面のアプリは `app/build.ps1` を同じ形で呼ぶ。`cargo test` のあとにリリース版をビルドし、ユーザーの「ダウンロード」フォルダに `equalizer.exe` を置く。ビルドの出力（`target`）は `%LOCALAPPDATA%\akiraak-equalizer-dev` に置く（WSL のフォルダに置くと遅い）。
+- インストーラは `app/build-installer.ps1` でビルドする（先に `apo/build.ps1`）。Tauri の CLI（バージョン 2）は、全体には入れず `%LOCALAPPDATA%\akiraak-equalizer-dev\tools` に入れてある（全体に入っているのはバージョン 1 で、ほかのプロジェクト用）。できたものは、ユーザーの「ダウンロード」フォルダの `equalizer-setup.exe`。
+- **ユーザーに実行してもらうファイル（インストーラ、試すための `equalizer.exe`）は「ダウンロード」フォルダに作る**（2026-11-20、ユーザーの指示）。ビルドの途中のファイル、ツール、開発用の登録のスクリプトは `%LOCALAPPDATA%\akiraak-equalizer-dev` のまま。
+- **インストーラの実行とアンインストールは、管理者の権限が要り、音の経路を変える。Claude Code は実行せず、ユーザーに実行してもらう。**
+- インストーラ（NSIS）は 32 bit のプロセス。フックから PowerShell を呼ぶときは、64 bit 版を `Sysnative` 経由で明示する。そうしないと、レジストリの書き込み先が 32 bit 用の場所にずれる。
 - Windows 側の Rust は 1.100.0（2026-11-19 に更新）。Tauri 2 のいまのクレートは 1.90 以上を要求する。
 - ビルドは、DLL と登録・解除のスクリプトを Windows 側の `%LOCALAPPDATA%\akiraak-equalizer-dev` にもそろえて置く。管理者の PowerShell から WSL のフォルダが見えないことがあるため。
 - `.ps1` は日本語を含むので、BOM 付きの UTF-8 で保存する（PowerShell 5.1 は BOM が無いと CP932 として読む）。

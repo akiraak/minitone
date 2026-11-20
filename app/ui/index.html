@@ -7,20 +7,6 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <header>
-      <div class="brand">
-        <span class="led" id="led"></span>
-        <span class="name">EQUALIZER</span>
-      </div>
-      <button type="button" id="power" aria-pressed="false">
-        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-          <path d="M8 1.5v6" />
-          <path d="M4.2 3.8a5.5 5.5 0 1 0 7.6 0" />
-        </svg>
-        <span id="power-label">OFF</span>
-      </button>
-    </header>
-
     <p id="notice" hidden></p>
 
     <!-- ツマミの絵は 3 つとも同じ部品を使う。目盛りと指針の位置は main.js が決める。 -->
@@ -34,6 +20,25 @@
     </svg>
 
     <main>
+      <!-- 電源の丸い押しボタン（直径 52 px）。ON のときは、周りのリングと電源のマークがオレンジに光る。 -->
+      <div class="control power">
+        <div class="slot">
+          <button type="button" id="power" aria-pressed="false" aria-label="イコライザーの入り切り">
+            <svg viewBox="-35 -35 70 70" aria-hidden="true">
+              <circle r="33" fill="#0d0e10" />
+              <circle class="ring" r="30" />
+              <circle class="body" r="25" />
+              <g class="mark">
+                <path d="M0 -12v11" />
+                <path d="M-7.5 -7.5a10.6 10.6 0 1 0 15 0" />
+              </g>
+            </svg>
+          </button>
+        </div>
+        <span class="label">POWER</span>
+        <span class="value" id="power-label">OFF</span>
+      </div>
+
       <div class="control">
         <div class="knob" id="treble" role="slider" tabindex="0" aria-label="Treble">
           <svg viewBox="-100 -100 200 200" aria-hidden="true">
@@ -60,15 +65,15 @@
         <span class="value" id="bass-value"></span>
       </div>
 
-      <div class="control large">
+      <div class="control">
         <div class="knob" id="volume" role="slider" tabindex="0" aria-label="Volume">
           <svg viewBox="-100 -100 200 200" aria-hidden="true">
             <path class="ticks" d="M -60.81 60.81 A 86 86 0 1 1 60.81 60.81" pathLength="100" stroke-dasharray="0.6 6.027" />
             <!-- 100% を超える範囲の印 -->
-            <path class="over" d="M -65.05 65.05 A 92 92 0 1 1 65.05 65.05" pathLength="100" stroke-dasharray="0 66.67 33.33 100" />
-            <circle r="70" fill="#0d0e10" />
-            <circle class="body" r="66" />
-            <g class="pointer"><line x1="0" y1="-60" x2="0" y2="-28" /></g>
+            <path class="over" d="M -66.47 66.47 A 94 94 0 1 1 66.47 66.47" pathLength="100" stroke-dasharray="0 66.67 33.33 100" />
+            <circle r="68" fill="#0d0e10" />
+            <circle class="body" r="64" />
+            <g class="pointer"><line x1="0" y1="-58" x2="0" y2="-30" /></g>
           </svg>
         </div>
         <span class="label">VOLUME</span>
