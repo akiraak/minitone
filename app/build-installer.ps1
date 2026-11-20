@@ -28,6 +28,9 @@ if (-not (Test-Path $tauri)) { throw "Tauri の CLI が無い: $tauri（この�
 $dll = Join-Path (Split-Path -Parent $root) 'apo\build\minitone_apo.dll'
 if (-not (Test-Path $dll)) { throw "APO の DLL が無い: $dll（先に apo\build.ps1 を実行する）" }
 
+# 同梱しているクレートの権利の表記を集める（インストーラに入れる。ビルドは、このファイルがあることを確かめる）。
+& (Join-Path $root 'third-party-notices.ps1')
+
 # cmd は UNC パス（WSL のフォルダ）をカレントにできないので、pushd で一時的にドライブを割り当てる。
 $bat = Join-Path $env:TEMP 'minitone_installer_build.bat'
 $lines = @(

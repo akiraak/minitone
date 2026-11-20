@@ -2,6 +2,8 @@
 
 Treble, Bass and Volume knobs for everything that plays on Windows 11. The tone control applies to all audio — browsers, games, music players — not to one app.
 
+![The MiniTone window: a power button and Treble, Bass and Volume knobs](docs/images/minitone.png)
+
 MiniTone installs its own Audio Processing Object (APO) into the Windows audio engine. **Read [Before you install](#before-you-install) first**: it turns off a Windows signature check and changes the audio path.
 
 ## Status
@@ -9,8 +11,8 @@ MiniTone installs its own Audio Processing Object (APO) into the Windows audio e
 Work in progress. It has only been run on the author's PC (Windows 11 25H2, x64).
 
 - What it does: Treble and Bass by ±20 dB, Volume from 0 to 150%. One button returns to the original sound. It stays in the system tray.
-- There is no prebuilt installer yet. You build `MiniTone-setup.exe` yourself.
-- The text in the app window and the tray menu is currently in Japanese.
+- The installer is on the [Releases](https://github.com/akiraak/minitone/releases) page.
+- The app is in English, or in Japanese when the Windows display language is Japanese.
 - See [Not verified](#not-verified) for what has not been tested.
 
 ## Before you install
@@ -60,13 +62,38 @@ If the file is missing or broken, audio passes through unchanged.
 
 ## Requirements
 
-- Windows 11 (x64)
-- To build: Visual Studio C++ build tools, Windows SDK (tested with 10.0.26100), Rust (1.90 or later)
-- To run: WebView2 runtime (included in Windows 11)
+- Windows 11 (x64). Windows on Arm is not supported, and the installer refuses to run there. Windows 10 has not been tested.
+- WebView2 runtime (included in Windows 11)
+
+## Install
+
+Download `MiniTone-setup.exe` from the [latest release](https://github.com/akiraak/minitone/releases/latest) and run it. Each release lists the SHA-256 of the installer.
+
+- Windows asks for administrator approval (UAC).
+- The installer is not signed, so Windows SmartScreen shows a warning. Choose "More info" → "Run anyway".
+- It puts the app in `C:\Program Files\MiniTone`, registers the APO, and attaches it to every active output device. Sound stops for a moment.
+- It saves the registry as it was before the change to `C:\ProgramData\akiraak-minitone`.
+
+Then start MiniTone from the Start menu. Press the power button on the left to turn it on, and turn the knobs.
+
+- Knobs: drag up or down, use the mouse wheel, or use the arrow keys. Hold Shift while dragging for fine steps. Double-click to return to the center (0 dB, 100%).
+- The close button keeps the app in the system tray. To quit, right-click the tray icon and choose "Quit".
+
+### Updating
+
+There is no automatic update. To update, download the newer `MiniTone-setup.exe` and run it over the installed version. Your settings are kept. Sound stops for a moment while the APO is replaced.
+
+## Uninstall
+
+Open Windows Settings → Apps → Installed apps and uninstall MiniTone.
+
+This detaches the APO from the output devices, removes its registration, restores `DisableProtectedAudioDG` to what it was before the install, and deletes the DLL and the app. The registry backup and your settings stay in `C:\ProgramData\akiraak-minitone`.
+
+To get the original sound back right away without uninstalling, turn the power button off, or change the first line of the settings file to `enabled=0`.
 
 ## Build
 
-Run these in PowerShell on Windows.
+You need the Visual Studio C++ build tools, the Windows SDK (tested with 10.0.26100) and Rust (1.90 or later). Run these in PowerShell on Windows.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File apo\build.ps1
@@ -79,28 +106,6 @@ powershell -ExecutionPolicy Bypass -File app\build-installer.ps1
 - The installer is written to your Downloads folder as `MiniTone-setup.exe`.
 - To build and try only the app, use `app\build.ps1`. It writes `MiniTone.exe` to your Downloads folder.
 - Intermediate build files and the development copies of the registration scripts go to `%LOCALAPPDATA%\akiraak-minitone-dev`.
-
-## Install
-
-Run `MiniTone-setup.exe`.
-
-- Windows asks for administrator approval (UAC).
-- The installer is not signed, so Windows SmartScreen shows a warning. Choose "More info" → "Run anyway".
-- It puts the app in `C:\Program Files\MiniTone`, registers the APO, and attaches it to every active output device. Sound stops for a moment.
-- It saves the registry as it was before the change to `C:\ProgramData\akiraak-minitone`.
-
-Then start MiniTone from the Start menu. Press the power button on the left to turn it on, and turn the knobs.
-
-- Knobs: drag up or down, use the mouse wheel, or use the arrow keys. Hold Shift while dragging for fine steps. Double-click to return to the center (0 dB, 100%).
-- The close button keeps the app in the system tray. To quit, right-click the tray icon and choose the last item, "終了" (Quit).
-
-## Uninstall
-
-Open Windows Settings → Apps → Installed apps and uninstall MiniTone.
-
-This detaches the APO from the output devices, removes its registration, restores `DisableProtectedAudioDG` to what it was before the install, and deletes the DLL and the app. The registry backup and your settings stay in `C:\ProgramData\akiraak-minitone`.
-
-To get the original sound back right away without uninstalling, turn the power button off, or change the first line of the settings file to `enabled=0`.
 
 ## Development scripts
 
@@ -118,7 +123,7 @@ powershell -ExecutionPolicy Bypass -File .\uninstall-apo.ps1
 
 ## Limitations
 
-- **The APO has to be attached to each output device.** A device you start using after the install (a new Bluetooth headset, for example) is not affected at first. The app shows a notice that it does not work on that device yet; press the button in the notice ("効くようにする") and answer "Yes" to the Windows prompt. This is needed once per device, and sound stops for a moment.
+- **The APO has to be attached to each output device.** A device you start using after the install (a new Bluetooth headset, for example) is not affected at first. The app shows a notice that it does not work on that device yet; press "Enable" in the notice and answer "Yes" to the Windows prompt. This is needed once per device, and sound stops for a moment.
 - **Reinstalling a driver detaches it**, because the device gets a new ID. A major Windows update can also detach it.
 - **Some audio is not affected.** Apps that play in exclusive mode, through ASIO, or in RAW mode bypass the APO.
 - **In loud passages, the Treble and Bass boost is reduced.** A full boost would push the signal past digital full scale, the Windows limiter would kick in, and the overall volume would waver. To prevent this, the APO automatically reduces the boost of the boosted band so that the output stays below full scale. The overall volume does not change, and quiet passages get the full boost.
@@ -132,10 +137,26 @@ powershell -ExecutionPolicy Bypass -File .\uninstall-apo.ps1
 - Whether DRM-protected playback (streaming services and so on) still produces sound
 - The corner frequencies of Treble and Bass (5 kHz, 150 Hz) are provisional
 
-## Log
+## Troubleshooting
+
+- **The knobs do nothing.** Check that the power button is on. If the app shows a notice that it is not active on the current device, press "Enable". Apps that use exclusive mode, ASIO or RAW mode are not affected (see [Limitations](#limitations)).
+- **The knobs stopped working after a driver or Windows update.** The APO was detached. Press "Enable" in the app, or run the installer again.
+- **An app or streaming service is silent.** It may require the protected audio path that MiniTone turns off. Uninstalling MiniTone restores the setting.
+- **There is no sound at all.** Uninstall MiniTone from Windows Settings; this removes the APO from every device. Then restart the PC.
 
 The APO writes its log to `C:\ProgramData\akiraak-minitone\minitone_apo.log`. If the sound does not change, check whether the log has entries from `audiodg.exe`.
+
+### Reporting a problem
+
+Open an issue at <https://github.com/akiraak/minitone/issues> and include:
+
+- the Windows version and build (`winver`)
+- the output device (built-in speakers, USB, Bluetooth, HDMI, …) and its driver if you know it
+- what you did and what happened
+- the contents of `minitone_apo.log`
 
 ## License
 
 MIT. MiniTone does not contain any code from Equalizer APO (GPL v2).
+
+The app is built with open-source Rust crates. Their license notices are installed next to the app as `THIRD-PARTY-NOTICES.txt`.

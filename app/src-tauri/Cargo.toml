@@ -1,7 +1,7 @@
 [package]
 name = "minitone"
 version = "0.1.0"
-description = "MiniTone: Windows 全体の音にかける Treble・Bass・Volume のツマミの画面"
+description = "MiniTone: Treble, Bass and Volume knobs for all Windows audio"
 license = "MIT"
 edition = "2021"
 
@@ -18,6 +18,7 @@ winreg = "0.56"
 version = "0.62"
 features = [
   "Win32_Foundation",
+  "Win32_Globalization",
   "Win32_Media_Audio",
   "Win32_System_Com",
   "Win32_System_Registry",

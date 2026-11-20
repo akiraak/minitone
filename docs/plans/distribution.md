@@ -46,6 +46,28 @@ MiniTone を、作者以外の人が入れて使える形にする。いまは�
 11. **自動のビルド（GitHub Actions）。** タグを付けたら、テストを走らせてインストーラを Releases に置く。
 12. **winget への登録。** Releases が安定してから。
 
+## 進み具合（2026-11-20）
+
+済んだもの:
+
+- A-2: 画面の文は、Windows の表示言語が日本語なら日本語、それ以外は英語（`texts.rs` の `tr`、`main.js` の `t`）。登録と解除のスクリプトの表示は英語にした。
+  - 英語の画面は、環境変数 `MINITONE_LANG=en` で起動して確かめた（README の絵はこのときのもの）。APO が付いていないときの英語の知らせの見た目は、まだ見ていない。
+- A-3 のうち `VCRUNTIME140.dll`: 依存していなかった（Tauri が `static_vcruntime` で静的にリンクしている）。`crt-static` は足していない。
+- B-5: Arm64 の Windows はインストーラが最初に止める（`NSIS_HOOK_PREINSTALL`）。APO が x64 の DLL で、読み込めないため。Windows 10 は止めず、README に「確かめていない」と書いた。
+- B-6: README に「Updating」を書いた。バージョンの場所は CLAUDE.md の「配布」。
+- C-7: `app/third-party-notices.ps1` が `cargo metadata` からクレートのライセンスのファイルを集め、インストーラが `THIRD-PARTY-NOTICES.txt` として入れる。MiniTone の `LICENSE` も `LICENSE.txt` として入れる。クレートのライセンスは MIT、Apache-2.0、BSD、Zlib、Unicode-3.0、MPL-2.0 など。GPL は無い。
+- C-8: リポジトリの説明とトピックを書いた。README に画面の絵（`docs/images/minitone.png`）を入れた。
+- C-9: README に「Troubleshooting」と「Reporting a problem」を書いた。
+- 新しいインストーラを sx360 で上書きインストールして、ユーザーが確かめた。
+- A-1: v0.1.0 を GitHub の Releases に置いた（`MiniTone-setup.exe` と SHA-256）。README の入れ方を、Releases から落とす書き方に直した。作者の PC 以外での確認は待たなかった（ユーザーの判断）。
+  - リリースの手順: バージョンを上げる → `apo\build.ps1` → `app\build-installer.ps1` → ユーザーがインストールして確かめる → コミットしてプッシュ → `gh release create vX.Y.Z` に「ダウンロード」フォルダの `MiniTone-setup.exe` を付け、説明に SHA-256 を書く。
+
+残っているもの:
+
+- A-3: 作者の PC 以外で確かめる。
+- B-4: 署名するか（ユーザーの判断）。C-10: 自動で常駐させるか（ユーザーの判断）。
+- C-11（GitHub Actions）、C-12（winget）は、最初のリリースのあと。
+
 ## 影響範囲
 
 - Step 1 と 2 は文書だけ（`README.md`、`TODO.md`、この文書）。コードと音の経路は変えない。

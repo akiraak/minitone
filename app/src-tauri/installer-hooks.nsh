@@ -7,6 +7,17 @@
 ; WOW6432Node. The APO must be registered in the 64-bit view, so the 64-bit
 ; PowerShell is started explicitly through the Sysnative alias.
 
+!include "x64.nsh"
+
+; The APO is an x64 DLL. The audio engine of Windows on Arm cannot load it,
+; so the installer stops there before it changes anything.
+!macro NSIS_HOOK_PREINSTALL
+  ${If} ${IsNativeARM64}
+    MessageBox MB_OK|MB_ICONSTOP "MiniTone supports only x64 Windows. It does not work on Windows on Arm."
+    Abort
+  ${EndIf}
+!macroend
+
 !macro EQ_FIND_POWERSHELL
   StrCpy $R8 "$WINDIR\Sysnative\WindowsPowerShell\v1.0\powershell.exe"
   ${IfNot} ${FileExists} "$R8"

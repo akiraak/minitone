@@ -38,7 +38,9 @@
     "resources": {
       "../../apo/build/minitone_apo.dll": "apo/minitone_apo.dll",
       "../../apo/scripts/install-apo.ps1": "apo/install-apo.ps1",
-      "../../apo/scripts/uninstall-apo.ps1": "apo/uninstall-apo.ps1"
+      "../../apo/scripts/uninstall-apo.ps1": "apo/uninstall-apo.ps1",
+      "../../LICENSE": "LICENSE.txt",
+      "gen/THIRD-PARTY-NOTICES.txt": "THIRD-PARTY-NOTICES.txt"
     },
     "windows": {
       "nsis": {

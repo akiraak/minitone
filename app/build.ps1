@@ -23,6 +23,9 @@ New-Item -ItemType Directory -Force -Path $stage | Out-Null
 # ビルドの出力は Windows 側に置く。WSL のフォルダに置くと遅く、ファイルのロックで失敗しやすい。
 $target = Join-Path $stage 'target'
 
+# 同梱しているクレートの権利の表記を集める（インストーラに入れる。ビルドは、このファイルがあることを確かめる）。
+& (Join-Path $root 'third-party-notices.ps1')
+
 # cmd は UNC パス（WSL のフォルダ）をカレントにできないので、pushd で一時的にドライブを割り当てる。
 $bat = Join-Path $env:TEMP 'minitone_app_build.bat'
 $lines = @(

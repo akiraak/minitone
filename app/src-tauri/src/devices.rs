@@ -18,6 +18,8 @@ use windows::Win32::UI::WindowsAndMessaging::SW_HIDE;
 use winreg::enums::{HKEY_LOCAL_MACHINE, KEY_READ};
 use winreg::RegKey;
 
+use crate::texts::tr;
+
 /// この APO の CLSID。`apo/src/EqApo.cpp` と同じ値。
 const APO_CLSID: &str = "{40874C30-A23F-4E8D-B383-B40845BA5584}";
 /// 出力デバイスの一覧があるレジストリのキー。
@@ -126,7 +128,11 @@ fn install_script() -> Option<PathBuf> {
 /// 有効な出力デバイスのうち、まだ付いていないもの全部に取り付ける。音のサービスが再起動される。
 pub fn attach_all_devices() -> Result<(), String> {
     let script = install_script().ok_or_else(|| {
-        "登録のスクリプトがありません。インストーラで入れた版から実行してください。".to_string()
+        tr(
+            "The setup script is missing. Run the installed version of MiniTone.",
+            "登録のスクリプトがありません。インストーラで入れた版から実行してください。",
+        )
+        .to_string()
     })?;
     let system_root = std::env::var("SystemRoot").unwrap_or_else(|_| r"C:\Windows".into());
     let powershell =
@@ -149,21 +155,33 @@ pub fn attach_all_devices() -> Result<(), String> {
     unsafe {
         if let Err(error) = ShellExecuteExW(&mut info) {
             return Err(if error.code() == ERROR_CANCELLED.to_hresult() {
-                "取り消されました。何も変えていません。".to_string()
+                tr("Cancelled. Nothing was changed.", "取り消されました。何も変えていません。").to_string()
             } else {
-                format!("管理者として起動できませんでした: {error}")
+                format!(
+                    "{}: {error}",
+                    tr("Could not start as administrator", "管理者として起動できませんでした")
+                )
             });
         }
         if info.hProcess.is_invalid() {
-            return Err("登録のスクリプトを起動できませんでした。".to_string());
+            return Err(tr(
+                "Could not start the setup script.",
+                "登録のスクリプトを起動できませんでした。",
+            )
+            .to_string());
         }
         WaitForSingleObject(info.hProcess, INFINITE);
         let mut exit_code = 0u32;
         let result = GetExitCodeProcess(info.hProcess, &mut exit_code);
         let _ = CloseHandle(info.hProcess);
-        result.map_err(|error| format!("結果を取得できませんでした: {error}"))?;
+        result.map_err(|error| {
+            format!("{}: {error}", tr("Could not get the result", "結果を取得できませんでした"))
+        })?;
         if exit_code != 0 {
-            return Err(format!("登録のスクリプトが失敗しました（終了コード {exit_code}）。"));
+            return Err(format!(
+                "{} ({exit_code})",
+                tr("The setup script failed. Exit code", "登録のスクリプトが失敗しました。終了コード")
+            ));
         }
     }
     Ok(())

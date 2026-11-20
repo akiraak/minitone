@@ -35,7 +35,7 @@ function Test-Admin {
 }
 
 if (-not $DryRun -and -not (Test-Admin)) {
-    throw '管理者の PowerShell で実行すること（-DryRun は管理者でなくてよい）。'
+    throw 'Run this in an administrator PowerShell (-DryRun does not need administrator rights).'
 }
 
 $state = $null
@@ -107,7 +107,7 @@ foreach ($endpointId in $endpointIds) {
     if ($actions.Count -eq 0) { continue }
 
     $touched++
-    "デバイス: $endpointId"
+    "Device: $endpointId"
     $writeKey = $null
     if (-not $DryRun) {
         $writeKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey(
@@ -118,10 +118,10 @@ foreach ($endpointId in $endpointIds) {
     foreach ($action in $actions) {
         if ($action.Rest.Count -eq 0) {
             # この APO だけが入っていた値は、install-apo.ps1 が作ったものなので消す。
-            "  $($action.ValueName): 値を消す"
+            "  $($action.ValueName): delete the value"
             if ($writeKey) { $writeKey.DeleteValue($action.ValueName, $false) }
         } else {
-            "  $($action.ValueName): $($action.Rest -join ', ') に戻す"
+            "  $($action.ValueName): restore to $($action.Rest -join ', ')"
             if ($writeKey) {
                 $writeKey.SetValue($action.ValueName, [string[]]$action.Rest, [Microsoft.Win32.RegistryValueKind]::MultiString)
             }
@@ -129,18 +129,18 @@ foreach ($endpointId in $endpointIds) {
     }
     if ($writeKey) { $writeKey.Close() }
 }
-if ($touched -eq 0) { 'この APO が付いている出力デバイスは無い。' }
+if ($touched -eq 0) { 'No output device has this APO attached.' }
 
 # 2. COM と APO の登録を消す
 $installedDll = Join-Path $InstallDir 'minitone_apo.dll'
 if (Test-Path $installedDll) {
-    "登録を消す: $installedDll"
+    "Unregister: $installedDll"
     if (-not $DryRun) {
         $process = Start-Process -FilePath "$env:SystemRoot\System32\regsvr32.exe" -ArgumentList '/u', '/s', "`"$installedDll`"" -Wait -PassThru
-        if ($process.ExitCode -ne 0) { "  注意: regsvr32 /u が失敗した（exit=$($process.ExitCode)）。" }
+        if ($process.ExitCode -ne 0) { "  Warning: regsvr32 /u failed (exit=$($process.ExitCode))." }
     }
 } else {
-    "DLL が無い（$installedDll）。登録の削除は飛ばす。"
+    "DLL not found ($installedDll). Skipping unregistration."
 }
 
 # 3. 設定のキーを消す
@@ -157,14 +157,14 @@ if (-not $DryRun) {
 # 4. 署名の検査の設定を、入れる前の状態に戻す
 if ($state) {
     if ($state.DisableProtectedAudioDGWasAbsent) {
-        'DisableProtectedAudioDG: 値を消す（入れる前は無かった）'
+        'DisableProtectedAudioDG: delete the value (it did not exist before the install)'
         if (-not $DryRun) {
             $audioKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($AudioPath, $true)
             $audioKey.DeleteValue('DisableProtectedAudioDG', $false)
             $audioKey.Close()
         }
     } else {
-        "DisableProtectedAudioDG: $($state.PreviousDisableProtectedAudioDG) に戻す"
+        "DisableProtectedAudioDG: restore to $($state.PreviousDisableProtectedAudioDG)"
         if (-not $DryRun) {
             $audioKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($AudioPath, $true)
             $audioKey.SetValue('DisableProtectedAudioDG', [int]$state.PreviousDisableProtectedAudioDG, [Microsoft.Win32.RegistryValueKind]::DWord)
@@ -172,10 +172,10 @@ if ($state) {
         }
     }
 } else {
-    '注意: 入れたときの記録が無いので、DisableProtectedAudioDG はそのままにする。'
+    'Warning: there is no record from the install, so DisableProtectedAudioDG is left as it is.'
 }
 
-if ($DryRun) { ''; '-DryRun なので何も変えていない。'; return }
+if ($DryRun) { ''; '-DryRun: nothing was changed.'; return }
 
 # 5. 音のサービスを再起動して、DLL を手放させる
 Restart-Service -Name audiosrv -Force
@@ -187,11 +187,11 @@ if (Test-Path $installedDll) {
         Remove-Item $installedDll -Force
         if (-not (Get-ChildItem $InstallDir)) { Remove-Item $InstallDir -Force }
     } catch {
-        "注意: DLL を消せなかった（$installedDll）。再起動のあとに手で消す。"
+        "Warning: could not delete the DLL ($installedDll). Delete it by hand after a restart."
     }
 }
 if (Test-Path $StateFile) { Remove-Item $StateFile -Force }
 
 ''
-'元に戻した。音が出るかを確かめること。'
-"入れる前のレジストリの控えは $StateDir に残してある。"
+'Removed. Check that sound plays.'
+"The registry backup from before the install is kept in $StateDir."

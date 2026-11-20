@@ -3,6 +3,7 @@
 
 mod devices;
 mod settings;
+mod texts;
 
 use std::fs;
 use std::collections::HashSet;
@@ -15,6 +16,7 @@ use settings::EqState;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, WindowEvent};
+use texts::tr;
 
 /// 画面へ渡す、いまの状態。
 #[derive(Serialize)]
@@ -23,6 +25,8 @@ struct StatePayload {
     state: EqState,
     /// いまの出力デバイスに APO が付いているか、など。
     device: DeviceStatus,
+    /// 画面の文の言語（"ja" か "en"）。
+    lang: &'static str,
     settings_path: String,
     max_tone_db: f64,
     max_volume_percent: f64,
@@ -49,12 +53,18 @@ fn read_state() -> EqState {
 fn write_state(state: &EqState) -> Result<(), String> {
     let dir = config_dir();
     if !dir.is_dir() {
-        return Err("APO が入っていません（設定のフォルダがありません）。".into());
+        return Err(tr(
+            "The audio component is not installed (the settings folder is missing).",
+            "APO が入っていません（設定のフォルダがありません）。",
+        )
+        .into());
     }
     let path = settings_path();
     let temporary = dir.join("settings.txt.tmp");
-    fs::write(&temporary, state.to_file_text()).map_err(|e| format!("設定を書けません: {e}"))?;
-    fs::rename(&temporary, &path).map_err(|e| format!("設定を置き換えられません: {e}"))?;
+    fs::write(&temporary, state.to_file_text())
+        .map_err(|e| format!("{}: {e}", tr("Cannot write the settings", "設定を書けません")))?;
+    fs::rename(&temporary, &path)
+        .map_err(|e| format!("{}: {e}", tr("Cannot replace the settings file", "設定を置き換えられません")))?;
     Ok(())
 }
 
@@ -63,6 +73,7 @@ fn get_state() -> StatePayload {
     StatePayload {
         state: read_state(),
         device: devices::current_status(),
+        lang: texts::lang(),
         settings_path: settings_path().to_string_lossy().into_owned(),
         max_tone_db: settings::MAX_TONE_DB,
         max_volume_percent: settings::MAX_VOLUME_PERCENT,
@@ -84,7 +95,11 @@ async fn attach_device() -> Result<DeviceStatus, String> {
         devices::attach_all_devices()?;
         let status = devices::current_status();
         if status.device_id.is_some() && !status.attached {
-            return Err("このデバイスには取り付けられませんでした。".to_string());
+            return Err(tr(
+                "Could not enable MiniTone on this device.",
+                "このデバイスには取り付けられませんでした。",
+            )
+            .to_string());
         }
         Ok(status)
     })
@@ -135,9 +150,9 @@ fn toggle_enabled(app: &AppHandle) {
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
-            let open = MenuItem::with_id(app, "open", "開く", true, None::<&str>)?;
-            let toggle = MenuItem::with_id(app, "toggle", "イコライザーの入り切り", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "終了", true, None::<&str>)?;
+            let open = MenuItem::with_id(app, "open", tr("Open", "開く"), true, None::<&str>)?;
+            let toggle = MenuItem::with_id(app, "toggle", tr("Turn on / off", "イコライザーの入り切り"), true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", tr("Quit", "終了"), true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open, &toggle, &quit])?;
 
             let mut tray = TrayIconBuilder::with_id("main")
@@ -177,5 +192,5 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![get_state, set_state, attach_device])
         .run(tauri::generate_context!())
-        .expect("アプリを起動できません");
+        .expect("failed to start the app");
 }

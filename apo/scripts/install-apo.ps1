@@ -97,7 +97,7 @@ namespace EqInstall {
 }
 '@
     $id = [EqInstall.DefaultDevice]::GetId()
-    if (-not $id) { throw '既定の出力デバイスが見つからない。' }
+    if (-not $id) { throw 'No default output device was found.' }
     # "{0.0.0.00000000}.{GUID}" の後ろの GUID がレジストリのキーの名前。
     return ($id -split '\.')[-1]
 }
@@ -119,7 +119,7 @@ function Get-EndpointPlan([string] $endpointId) {
     $plan = [ordered]@{ Endpoint = $endpointId; Name = (Get-EndpointName $endpointId); Changes = @(); Skip = $null }
     $key = Open-FxKey $endpointId $false
     if (-not $key) {
-        $plan.Skip = 'FxProperties のキーが無い（管理者でもキーは作れない）'
+        $plan.Skip = 'the device has no FxProperties key (it cannot be created, even as administrator)'
         return $plan
     }
     $names = $key.GetValueNames()
@@ -134,7 +134,7 @@ function Get-EndpointPlan([string] $endpointId) {
         $previous = @()
         if ($existed) { $previous = @($key.GetValue($valueName)) }
         if ($previous -contains $Clsid) {
-            $plan.Skip = '既に取り付けてある'
+            $plan.Skip = 'already attached'
         } else {
             $plan.Changes += [ordered]@{
                 ValueName = $valueName; Kind = 'MultiString'; Existed = $existed
@@ -146,8 +146,8 @@ function Get-EndpointPlan([string] $endpointId) {
         $valueName = "$FxGuid,$($slot.Legacy)"
         if ($names -contains $valueName) {
             $current = [string]$key.GetValue($valueName)
-            if ($current -ieq $Clsid) { $plan.Skip = '既に取り付けてある' }
-            else { $plan.Skip = "この段にはドライバの APO（$current）が入っていて、並べる形になっていない。未対応" }
+            if ($current -ieq $Clsid) { $plan.Skip = 'already attached' }
+            else { $plan.Skip = "this stage holds a driver APO ($current) in the single-APO format; not supported" }
         } else {
             $plan.Changes += [ordered]@{
                 ValueName = $valueName; Kind = 'String'; Existed = $false; Previous = @(); New = @($Clsid)
@@ -171,7 +171,7 @@ function Get-EndpointPlan([string] $endpointId) {
 # ---- ここから本体 ----
 
 if (-not $DryRun -and -not (Test-Admin)) {
-    throw '管理者の PowerShell で実行すること（-DryRun は管理者でなくてよい）。'
+    throw 'Run this in an administrator PowerShell (-DryRun does not need administrator rights).'
 }
 
 if (-not $DllPath) {
@@ -179,7 +179,7 @@ if (-not $DllPath) {
     $DllPath = Join-Path $PSScriptRoot 'minitone_apo.dll'
     if (-not (Test-Path $DllPath)) { $DllPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'build\minitone_apo.dll' }
 }
-if (-not (Test-Path $DllPath)) { throw "DLL が見つからない: $DllPath（先に build.ps1 でビルドする）" }
+if (-not (Test-Path $DllPath)) { throw "DLL not found: $DllPath (build it with build.ps1 first)" }
 
 if ($AllDevices) { $targets = Get-ActiveRenderEndpointIds } else { $targets = @(Get-DefaultRenderEndpointId) }
 $plans = @($targets | ForEach-Object { Get-EndpointPlan $_ })
@@ -188,21 +188,21 @@ $audioKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($AudioPath, $fal
 $previousProtected = $audioKey.GetValue('DisableProtectedAudioDG')
 $audioKey.Close()
 
-"段: $Stage"
+"Stage: $Stage"
 "DLL: $DllPath -> $InstallDir"
-"DisableProtectedAudioDG: いま=$(if ($null -eq $previousProtected) { '無い' } else { $previousProtected }) -> 1"
+"DisableProtectedAudioDG: now=$(if ($null -eq $previousProtected) { 'absent' } else { $previousProtected }) -> 1"
 foreach ($plan in $plans) {
-    "デバイス: $($plan.Name)"
-    if ($plan.Skip) { "  何もしない: $($plan.Skip)"; continue }
+    "Device: $($plan.Name)"
+    if ($plan.Skip) { "  Skipped: $($plan.Skip)"; continue }
     foreach ($change in $plan.Changes) {
         "  $($change.ValueName)"
-        "    前: $(if ($change.Existed) { $change.Previous -join ', ' } else { '（値が無い）' })"
-        "    後: $($change.New -join ', ')"
+        "    before: $(if ($change.Existed) { $change.Previous -join ', ' } else { '(no value)' })"
+        "    after:  $($change.New -join ', ')"
     }
 }
-"設定ファイル: $SettingsFile"
+"Settings file: $SettingsFile"
 
-if ($DryRun) { ''; '-DryRun なので何も変えていない。'; return }
+if ($DryRun) { ''; '-DryRun: nothing was changed.'; return }
 # 取り付けるデバイスが無くても先へ進む（DLL の入れ替えと、設定のフォルダの用意のため）。
 
 # 1. 変える前の状態を控える
@@ -237,7 +237,7 @@ if (-not $sameDll) {
     } catch {
         # 前の版を音のエンジン（audiodg.exe）が読み込んでいる。音のサービスを止めて手放させてから置く。
         # サービスは最後の手順（8）で起動し直す。
-        '前の版が使われているので、音のサービスを止めて置き換える。'
+        'The previous version is in use. Stopping the audio service to replace it.'
         Stop-Service -Name audiosrv -Force
         $copied = $false
         foreach ($attempt in 1..10) {
@@ -246,7 +246,7 @@ if (-not $sameDll) {
         }
         if (-not $copied) {
             Start-Service -Name audiosrv
-            throw "DLL を置けない（$installedDll）。uninstall-apo.ps1 を実行してから、やり直す。"
+            throw "Cannot write the DLL ($installedDll). Run uninstall-apo.ps1 and try again."
         }
     }
 }
@@ -258,7 +258,7 @@ $audioKey.Close()
 
 # 4. COM と APO の登録
 $process = Start-Process -FilePath "$env:SystemRoot\System32\regsvr32.exe" -ArgumentList '/s', "`"$installedDll`"" -Wait -PassThru
-if ($process.ExitCode -ne 0) { throw "regsvr32 が失敗した（exit=$($process.ExitCode)）。" }
+if ($process.ExitCode -ne 0) { throw "regsvr32 failed (exit=$($process.ExitCode))." }
 
 # 5. 設定のフォルダを作る。画面（管理者でない）が設定ファイルを書けるよう、
 #    このフォルダだけ一般のユーザーに書き込みを許す。S-1-5-32-545 は Users。
@@ -315,7 +315,7 @@ if ((Get-Service -Name audiosrv).Status -eq 'Running') {
 }
 
 ''
-'取り付けた。音が出るかを確かめること。'
-"ログ: $StateDir\minitone_apo.log"
-"控え: $StateDir"
-'元に戻すには uninstall-apo.ps1 を管理者の PowerShell で実行する。'
+'Attached. Check that sound plays.'
+"Log: $StateDir\minitone_apo.log"
+"Backup: $StateDir"
+'To undo, run uninstall-apo.ps1 in an administrator PowerShell.'

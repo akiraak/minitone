@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -10,7 +10,7 @@
     <!-- いまの出力デバイスにまだ効かないとき、などの知らせ。パネルの上の端に重ねて出す。 -->
     <div id="notice" hidden>
       <span id="notice-text"></span>
-      <button type="button" id="attach" hidden>効くようにする</button>
+      <button type="button" id="attach" hidden></button>
     </div>
 
     <!-- ツマミの絵は 3 つとも同じ部品を使う。目盛りと指針の位置は main.js が決める。 -->
@@ -27,7 +27,7 @@
       <!-- 電源の丸い押しボタン（直径 52 px）。ON のときは、周りのリングと電源のマークがオレンジに光る。 -->
       <div class="control power">
         <div class="slot">
-          <button type="button" id="power" aria-pressed="false" aria-label="イコライザーの入り切り">
+          <button type="button" id="power" aria-pressed="false" aria-label="Power">
             <svg viewBox="-35 -35 70 70" aria-hidden="true">
               <circle r="33" fill="#0d0e10" />
               <circle class="ring" r="30" />

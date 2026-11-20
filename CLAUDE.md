@@ -66,7 +66,20 @@
 - `app/ui/` — 画面（素の HTML / CSS / JavaScript）。3 つのツマミと入り切りのボタン。
 - `app/build.ps1` — 画面のアプリのテストとビルド。
 - `app/build-installer.ps1` — 使う人向けのインストーラ（NSIS の `setup.exe`）をビルドする。
-- `app/src-tauri/installer-hooks.nsh` — インストーラのフック。インストールの後に `install-apo.ps1 -AllDevices`、アンインストールの前に `uninstall-apo.ps1` を呼ぶ。
+- `app/src-tauri/installer-hooks.nsh` — インストーラのフック。インストールの前に Arm64 の Windows なら止める。インストールの後に `install-apo.ps1 -AllDevices`、アンインストールの前に `uninstall-apo.ps1` を呼ぶ。
+- `app/src-tauri/src/texts.rs` — 画面の文の言語の判定（`tr(英語, 日本語)`）。
+- `app/third-party-notices.ps1` — 同梱しているクレートの権利の表記を `app/src-tauri/gen/THIRD-PARTY-NOTICES.txt` に集める。`app/build.ps1` と `app/build-installer.ps1` が呼ぶ。インストーラに同梱する。
+- `docs/images/` — README に載せる画面の絵。
+
+## 配布（2026-11-20）
+
+- README.md は英語で書く。
+- **画面の文（知らせ、トレイのメニュー、エラー）は、Windows の表示言語が日本語なら日本語、それ以外は英語。** 文を足すときは、Rust は `texts::tr("English", "日本語")`、JavaScript は `t("English", "日本語")` で両方を書く。確認用に、環境変数 `MINITONE_LANG`（`ja` / `en`）で切り替えられる。
+- 登録と解除のスクリプト（`apo/scripts/*.ps1`）が表示する文は英語（インストーラのログに出て、使う人が読むため）。コメントは日本語のまま。
+- 対応するのは x64 の Windows 11。Arm64 はインストーラが止める。Windows 10 は止めないが、確かめていない。
+- 画面のアプリは `VCRUNTIME140.dll` に依存しない（Tauri が `static_vcruntime` で静的にリンクする。2026-11-20 に実行ファイルの依存を見て確認）。Visual C++ の再頒布パッケージは要らない。
+- バージョンは `app/src-tauri/tauri.conf.json` と `app/src-tauri/Cargo.toml` の 2 か所（`Cargo.lock` はビルドで更新される）。
+- 残りの項目と進み具合は `docs/plans/distribution.md`。
 
 ## 設定ファイル
 
