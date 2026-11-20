@@ -20,15 +20,6 @@
 
 ## 実装
 
-- [~] アプリ名を MiniTone にする [plan](docs/plans/rename-minitone.md)
-  - 2026-11-20 にユーザーが MiniTone と決定
-  - 内部の名前（GitHub のリポジトリ、設定とログのフォルダ、APO の DLL、レジストリ、開発用のフォルダ）も変える。CLSID は変えない
-  - [x] 表示、実行ファイル、インストーラ、README の名前を変えてビルドする
-  - [x] 内部の名前を変えてビルドする
-  - [x] GitHub のリポジトリの名前を `minitone` に変える
-  - [x] WSL のフォルダ（`~/equalizer` → `~/minitone`）と project-manager の登録を `minitone` に変える
-  - [ ] 前の版（equalizer）をアンインストールしてから MiniTone を入れ、表示と音を確かめる（ユーザー）
-
 ## 配布
 
 - [~] 配布の準備をする [plan](docs/plans/distribution.md)
