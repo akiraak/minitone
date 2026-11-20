@@ -8,7 +8,27 @@
 
 - 対象は Windows 全体の音（ブラウザ、ゲーム、音楽プレイヤーなど、どのアプリの音にも効く）。特定のアプリの中だけの再生機能ではない。
 - sx360 の Windows 側で動く。
-- 作り方（既存の仕組みを使うか自前で音を処理するか、画面のフレームワーク、言語）は**まだ決めていない**。`TODO.md` の「技術選定」で決め、決めたらこのファイルに書く。
+
+## 作り方（2026-11-19 に決定）
+
+- **音の処理は自前の APO（Audio Processing Object）で行う。** APO は Windows の音のエンジン（`audiodg.exe`）に読み込まれる DLL で、出力デバイスごとに登録する。
+  - 理由: 使う人がこのアプリだけを入れれば使えるようにするため。Equalizer APO を別に入れてもらう作りは採らない（ユーザーの判断）。
+  - Equalizer APO は GPL v2、このリポジトリは MIT。**Equalizer APO のコードは写さない。** 仕組みの参考にとどめる。
+  - APO が落ちると Windows 全体の音が止まる。APO の中の処理は小さく保ち、設定の読み込みなど失敗しうる処理は音の処理の経路の外に置く。
+  - **APO は C++ で書く**（Microsoft の見本と基底クラスがあるため）。
+  - **APO は署名しない。** 読み込ませるために、レジストリの `DisableProtectedAudioDG` を 1 にして Windows の署名の検査を切る（ユーザーが 2026-11-19 に了承。Equalizer APO と同じ方法）。副作用として、保護された音の経路を要求するアプリ（DRM 付きの再生など）が音を出さなくなることがある。README に書いて使う人に知らせる。
+  - APO は出力デバイスごとに登録する。新しい出力デバイスは 1 回の登録（管理者の権限）が要る。
+  - **APO は MFX の段に入れる。** ドライバの APO が並んでいる値の先頭に CLSID を足す。EFX の段は sx360 の Bluetooth のヘッドホンで効かなかった。MFX は RAW のモードで再生するアプリの音には効かない。
+  - 音のエンジンは APO を集約（COM aggregation）して生成する。APO は集約に対応していること。
+  - 登録のしかた、実装の決まりの調査結果は `docs/plans/custom-apo.md` にある。
+- **画面は Tauri 2（Rust + Web の画面）。** 画面は素の HTML / CSS / JavaScript で書き、Node.js に依存しない。タスクトレイに常駐する。画面は APO に設定（各バンドの値、入り切り）を渡す。
+- 比較した方式は `docs/plans/archive/tech-selection.md` にある。
+
+## 機能の要件（決まっているもの）
+
+- 出力デバイスがスピーカーでもヘッドホンでも効く。
+- いまアクティブな出力デバイスに自動で効く。アプリでデバイスを選ばせない。
+- オリジナルの音に戻せる（イコライザーを切れる）。
 
 ## 経緯
 
@@ -18,7 +38,46 @@
 
 - Claude Code は sx360（Windows 11 + WSL2）の WSL で動く。リポジトリは WSL の `~/equalizer`。
 - アプリは Windows 側で動くので、動作確認は sx360 の Windows 側で行う。WSL から Windows のコマンドを呼ぶときは `cd /mnt/c` してから `powershell.exe` を使う（詳しくは `~/pc-manager/CLAUDE.md` の「Windows ホストでの操作方法」）。
-- ディレクトリ構成、ビルドとテストの手順は、技術選定のあとにここへ書く。
+- ビルドは Windows 側のツール（`cargo.exe`、`cargo tauri`、MSVC のビルドツール）で行い、WSL から `powershell.exe` 経由で呼ぶ。WSL からのクロスビルドはしない。
+- sx360 の Windows 側に入れてある開発用のツール: Visual Studio の C++ ビルドツール、Windows SDK 10.0.26100（2026-11-19 に winget で入れた）、Rust。ATL は入っていない（APO は ATL を使わずに書いている）。
+
+## ディレクトリ構成
+
+- `apo/src/` — APO の DLL（C++）。
+  - `EqApo.*` — APO の本体。`Dll.cpp` — DLL の入口と登録。
+  - `Dsp.*` — 設定の読み取りとフィルタの計算。Windows に依存しない。
+  - `SettingsStore.*` — 設定ファイルを見張り、変わったら読み直して APO に配る。
+- `apo/test/dsp_test.cpp` — フィルタと設定の読み取りの単体テスト。WSL の g++ でもビルドできる。
+- `apo/test/host_test.cpp` — DLL を Windows の音のエンジン無しで読み込み、音のエンジンが行う呼び出しをまねて確かめるテスト。
+- `apo/build.ps1` — DLL とテストをビルドし、テストを走らせる。出力は `apo/build/`（コミットしない）。
+- `apo/scripts/install-apo.ps1`、`uninstall-apo.ps1` — 開発用。APO を Windows に登録して出力デバイスに取り付ける／元に戻す。
+- 画面（Tauri 2）のコードはまだ無い。
+
+## 設定ファイル
+
+画面と APO は、設定ファイル `C:\ProgramData\akiraak-equalizer\config\settings.txt` でやり取りする。画面が書き、APO が読む。APO は 250 ms ごとに更新時刻を見て、変わっていれば再起動なしで反映する。
+
+```
+enabled=1
+preamp=-3.0
+band=1000,4.5,1.41
+```
+
+- `enabled`: 0 ならオリジナルの音（素通し）。`preamp`: 全体の音量（dB、±24）。`band`: 周波数（Hz）、増減（dB、±24）、Q（0.1〜20）。バンドは 32 個まで。
+- ファイルが無い、壊れているときは素通しになる。範囲外の値の行は捨てられる。
+- `config` のフォルダは、一般のユーザーが書ける（登録のスクリプトが権限を付ける）。画面は管理者でなくてよい。
+
+## ビルドとテスト
+
+```bash
+cd /mnt/c && powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w ~/equalizer/apo/build.ps1)" | tr -d '\r'
+```
+
+- ビルドのあとにテスト（`host_test.exe`）が走る。最後に `PASS (0 failures)` が出れば成功。
+- ビルドは、DLL と登録・解除のスクリプトを Windows 側の `%LOCALAPPDATA%\akiraak-equalizer-dev` にもそろえて置く。管理者の PowerShell から WSL のフォルダが見えないことがあるため。
+- `.ps1` は日本語を含むので、BOM 付きの UTF-8 で保存する（PowerShell 5.1 は BOM が無いと CP932 として読む）。
+- **APO の登録と解除（`install-apo.ps1`、`uninstall-apo.ps1`）は管理者の権限が要り、音の経路を変える。Claude Code は実行せず、ユーザーに実行してもらう。** `-DryRun` を付けると何も変えずに行う変更だけを表示するので、これは確認なしで実行してよい。
+- APO のログは `C:\ProgramData\akiraak-equalizer\equalizer_apo.log`。管理者でなくても読める。APO は LocalService の権限で動くので、登録のスクリプトがこのフォルダに書き込みの権限を付ける。
 
 ## 注意が必要な操作
 
