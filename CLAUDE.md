@@ -46,7 +46,7 @@
 - **表示は 3 つあり、画面で切り替える**（アナログとデジタルは 2026-11-20 にユーザーが決定。曲線の表示は同じ日に足した）。
   - アナログの表示: 4 つのツマミ。
   - デジタルの表示: LED の並んだ横のバーが 4 行。左に名前、右に数字。BASS、MID、TREBLE はまんなか（0 dB）から左右に光り、VOLUME は左から光って 100% を超えた分は明るい色（案 B）。
-  - 曲線の表示: イコライザーによくある、横が周波数（20 Hz〜20 kHz）、縦が増減（dB）のグラフ。BASS、MID、TREBLE の 3 つの点を上下に動かす。VOLUME は右のツマミ（2026-11-20 にユーザーが案 H2 を選んだ。経緯は `docs/plans/eq-curve-display.md`）。
+  - 曲線の表示: イコライザーによくある、横が周波数（20 Hz〜20 kHz）、縦が増減（dB）のグラフ。BASS、MID、TREBLE の 3 つの点を上下に動かす。VOLUME は右のツマミ（2026-11-20 にユーザーが案 H2 を選んだ。経緯は `docs/plans/archive/eq-curve-display.md`）。
     - 線は、実際にかかるフィルタを計算した形（画面の JavaScript で、APO の `Dsp.cpp` と同じ式を計算する）。
     - 線の後ろに LED の棒が 20 本並び、下の端から、その周波数での線の高さまで光る（1 粒 2 dB）。
     - 点の左右の位置は、BASS が 50 Hz、MID が 2 kHz、TREBLE が 12 kHz。BASS と TREBLE は、フィルタの周波数（150 Hz、5 kHz）ではなく、線がほぼ設定の値に届く平らなところに置く。点は設定の値の高さにある。
@@ -84,7 +84,7 @@
 - `app/build-installer.ps1` — 使う人向けのインストーラ（NSIS の `setup.exe`）をビルドする。
 - `app/src-tauri/installer-hooks.nsh` — インストーラのフック。インストールの前に Arm64 の Windows なら止める。インストールの後に `install-apo.ps1 -AllDevices`、アンインストールの前に `uninstall-apo.ps1` を呼ぶ。
 - `app/third-party-notices.ps1` — 同梱しているクレートの権利の表記を `app/src-tauri/gen/THIRD-PARTY-NOTICES.txt` に集める。`app/build.ps1` と `app/build-installer.ps1` が呼ぶ。インストーラに同梱する。
-- `docs/images/` — README に載せる画面の絵。
+- `docs/images/` — README に載せる画面の絵（ツマミ、バー、曲線の 3 枚）。画面のファイルを見せかけの値でヘッドレスの Edge に描かせ（125%）、実物のウィンドウの枠に貼って作った（2026-11-20）。
 
 ## 配布（2026-11-20）
 

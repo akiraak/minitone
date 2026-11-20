@@ -6,6 +6,8 @@ Bass, Mid, Treble and Volume knobs for everything that plays on Windows 11. The 
 
 ![The MiniTone window in the LED bar view](docs/images/minitone-bars.png)
 
+![The MiniTone window in the curve view](docs/images/minitone-curve.png)
+
 MiniTone installs its own Audio Processing Object (APO) into the Windows audio engine. **Read [Before you install](#before-you-install) first**: it turns off a Windows signature check and changes the audio path.
 
 ## Status
