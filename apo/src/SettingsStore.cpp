@@ -31,7 +31,7 @@ DWORD g_lastSize = 0;
 bool g_loadedOnce = false;
 
 // 設定ファイルの場所。環境変数 EQAPO_SETTINGS_PATH があればそれ（テスト用）、
-// 無ければ %ProgramData%\akiraak-equalizer\config\settings.txt。
+// 無ければ %ProgramData%\akiraak-minitone\config\settings.txt。
 void ResolvePath()
 {
     DWORD length = GetEnvironmentVariableW(L"EQAPO_SETTINGS_PATH", g_path, MAX_PATH);
@@ -44,7 +44,7 @@ void ResolvePath()
         g_path[0] = L'\0';
         return;
     }
-    wcscat_s(g_path, L"\\akiraak-equalizer\\config\\settings.txt");
+    wcscat_s(g_path, L"\\akiraak-minitone\\config\\settings.txt");
 }
 
 void Publish(const Settings& settings)

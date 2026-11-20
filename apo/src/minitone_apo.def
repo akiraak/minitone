@@ -1,4 +1,4 @@
-LIBRARY equalizer_apo
+LIBRARY minitone_apo
 EXPORTS
     DllGetClassObject   PRIVATE
     DllCanUnloadNow     PRIVATE

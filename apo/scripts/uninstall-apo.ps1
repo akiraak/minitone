@@ -23,9 +23,9 @@ $ModesGuid = '{d3993a3f-99c2-4402-b5ec-a92a0367664b}'
 $DefaultMode = '{C18E2F7E-933D-4965-B7D1-1EEF228D2AF3}'
 $RenderPath = 'SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render'
 $AudioPath = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Audio'
-$SettingsPath = 'SOFTWARE\akiraak\equalizer'
-$InstallDir = Join-Path $env:ProgramFiles 'akiraak-equalizer'
-$StateDir = Join-Path $env:ProgramData 'akiraak-equalizer'
+$SettingsPath = 'SOFTWARE\akiraak\minitone'
+$InstallDir = Join-Path $env:ProgramFiles 'akiraak-minitone'
+$StateDir = Join-Path $env:ProgramData 'akiraak-minitone'
 $StateFile = Join-Path $StateDir 'install-state.json'
 
 function Test-Admin {
@@ -132,7 +132,7 @@ foreach ($endpointId in $endpointIds) {
 if ($touched -eq 0) { 'この APO が付いている出力デバイスは無い。' }
 
 # 2. COM と APO の登録を消す
-$installedDll = Join-Path $InstallDir 'equalizer_apo.dll'
+$installedDll = Join-Path $InstallDir 'minitone_apo.dll'
 if (Test-Path $installedDll) {
     "登録を消す: $installedDll"
     if (-not $DryRun) {

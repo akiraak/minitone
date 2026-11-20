@@ -15,13 +15,13 @@ const CLSID CLSID_EqApo =
 #pragma warning(disable : 4815)
 const CRegAPOProperties<1> EqApo::regProperties(
     CLSID_EqApo,
-    L"akiraak/equalizer",
+    L"akiraak/minitone",
     L"MIT License",
     1, 0,
     __uuidof(IAudioProcessingObject));
 #pragma warning(pop)
 
-// ログ。%ProgramData%\akiraak-equalizer\equalizer_apo.log に追記する。
+// ログ。%ProgramData%\akiraak-minitone\minitone_apo.log に追記する。
 // このフォルダは登録のスクリプトが作り、audiodg.exe（LocalService）が書けるようにする。
 // 書けなければ何もしない。リアルタイムのスレッド（APOProcess）からは呼ばないこと。
 void EqLog(const wchar_t* format, ...)
@@ -30,7 +30,7 @@ void EqLog(const wchar_t* format, ...)
     DWORD len = GetEnvironmentVariableW(L"ProgramData", path, MAX_PATH);
     if (len == 0 || len > MAX_PATH - 48)
         return;
-    wcscat_s(path, L"\\akiraak-equalizer\\equalizer_apo.log");
+    wcscat_s(path, L"\\akiraak-minitone\\minitone_apo.log");
 
     wchar_t message[512];
     va_list args;

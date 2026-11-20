@@ -11,7 +11,7 @@ static HINSTANCE g_instance = nullptr;
 static const wchar_t kClsidKey[] = L"SOFTWARE\\Classes\\CLSID\\{40874C30-A23F-4E8D-B383-B40845BA5584}";
 static const wchar_t kInprocKey[] =
     L"SOFTWARE\\Classes\\CLSID\\{40874C30-A23F-4E8D-B383-B40845BA5584}\\InprocServer32";
-static const wchar_t kDescription[] = L"akiraak/equalizer APO";
+static const wchar_t kDescription[] = L"akiraak/minitone APO";
 
 class ClassFactory : public IClassFactory
 {

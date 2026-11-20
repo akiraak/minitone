@@ -10,7 +10,7 @@
 
 ### 設定の渡し方
 
-- 画面は設定ファイル `C:\ProgramData\akiraak-equalizer\config\settings.txt` を書く。APO はそれを読む
+- 画面は設定ファイル `C:\ProgramData\akiraak-minitone\config\settings.txt` を書く。APO はそれを読む
   - APO は LocalService の権限で動き、ユーザーのフォルダは読めない。ProgramData は読める
   - `config` のフォルダだけ、一般のユーザーが書けるようにする（登録のスクリプトが権限を付ける）。画面を管理者で動かさずに済む
 - 形式は 1 行に 1 項目のテキスト。APO の中に重いパーサを持ち込まない

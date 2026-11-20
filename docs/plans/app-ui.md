@@ -38,7 +38,7 @@ APO は設定ファイルに従ってイコライザーをかけ、変更を再�
 
 - `app/src-tauri/` — Rust。設定ファイルの読み書き（一時ファイルに書いてから置き換える）、トレイ
 - `app/ui/` — 素の HTML / CSS / JavaScript。Node.js を使わない
-- 設定ファイル（`C:\ProgramData\akiraak-equalizer\config\settings.txt`）が、設定の唯一の置き場所。画面は起動時にそれを読む
+- 設定ファイル（`C:\ProgramData\akiraak-minitone\config\settings.txt`）が、設定の唯一の置き場所。画面は起動時にそれを読む
 - APO が入っていない（設定のフォルダが無い）ときは、画面でそれを知らせる
 
 ### Step

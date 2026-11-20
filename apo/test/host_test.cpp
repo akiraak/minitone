@@ -1,6 +1,6 @@
 // APO の DLL を、Windows の音のエンジンを使わずに読み込んで確かめるテスト。
 // 音のエンジンが行う呼び出し（生成、初期化、形式の確認、ロック、処理）をまねる。
-// 使い方: host_test.exe <equalizer_apo.dll のパス>
+// 使い方: host_test.exe <minitone_apo.dll のパス>
 #include <windows.h>
 #include <audioenginebaseapo.h>
 #include <baseaudioprocessingobject.h>
@@ -177,7 +177,7 @@ int wmain(int argc, wchar_t** argv)
 {
     if (argc < 2)
     {
-        printf("usage: host_test.exe <path to equalizer_apo.dll>\n");
+        printf("usage: host_test.exe <path to minitone_apo.dll>\n");
         return 2;
     }
 
@@ -186,7 +186,7 @@ int wmain(int argc, wchar_t** argv)
     // この PC に置いてある本物の設定に左右されないよう、一時の設定ファイルを使わせる。
     wchar_t temp[MAX_PATH];
     GetTempPathW(MAX_PATH, temp);
-    swprintf_s(g_settingsPath, L"%sequalizer_host_test_%lu.txt", temp, GetCurrentProcessId());
+    swprintf_s(g_settingsPath, L"%sminitone_host_test_%lu.txt", temp, GetCurrentProcessId());
     SetEnvironmentVariableW(L"EQAPO_SETTINGS_PATH", g_settingsPath);
     DeleteFileW(g_settingsPath);
 

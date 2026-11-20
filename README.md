@@ -1,4 +1,4 @@
-# equalizer
+# MiniTone
 
 Windows で鳴る音の全部にかける、Treble・Bass・Volume のツマミ。ブラウザ、ゲーム、音楽プレイヤーなど、どのアプリの音にも効く。
 
@@ -9,7 +9,7 @@ A system-wide tone control for Windows 11: Treble, Bass and Volume knobs that ap
 開発中。作者の PC（Windows 11 25H2、x64）1 台でだけ動かしている。
 
 - できること: Treble と Bass を ±20 dB、Volume を 0〜150% で動かす。ボタン 1 つでオリジナルの音に戻す。タスクトレイに常駐する
-- インストーラ（`equalizer-setup.exe`）は自分でビルドする。ビルド済みのものは配っていない
+- インストーラ（`MiniTone-setup.exe`）は自分でビルドする。ビルド済みのものは配っていない
 - 確かめていないこと: 下の「確かめていないこと」を見ること
 
 ## 入れる前に知っておくこと
@@ -34,7 +34,7 @@ APO は Windows の音のエンジン（`audiodg.exe`）の中で動く。APO �
 
 - **APO**（`apo/`、C++）: 音のエンジンに読み込まれる DLL。設定ファイルを 250 ms ごとに見て、変わっていれば再起動なしで反映する。
 - **画面のアプリ**（`app/`、Rust + 素の HTML / CSS / JavaScript）: ツマミの値を設定ファイルに書くだけ。音は処理しない。管理者の権限は要らない。
-- **設定ファイル**: `C:\ProgramData\akiraak-equalizer\config\settings.txt`
+- **設定ファイル**: `C:\ProgramData\akiraak-minitone\config\settings.txt`
 
 ```
 enabled=1
@@ -75,29 +75,29 @@ powershell -ExecutionPolicy Bypass -File app\build-installer.ps1
 - `apo\build.ps1` は DLL をビルドし、テストを走らせる。
 - `app\build-installer.ps1` は、画面のアプリをビルドし、DLL と登録のスクリプトを同梱したインストーラを作る。
   - Tauri の CLI（バージョン 2）が要る。入れ方はスクリプトの先頭に書いてある。
-- できたインストーラは、「ダウンロード」フォルダの `equalizer-setup.exe`。
-- 画面のアプリだけをビルドして試すときは `app\build.ps1`。「ダウンロード」フォルダに `equalizer.exe` ができる。
-- ビルドの途中のファイルと、開発用の登録のスクリプトは `%LOCALAPPDATA%\akiraak-equalizer-dev` に置かれる。
+- できたインストーラは、「ダウンロード」フォルダの `MiniTone-setup.exe`。
+- 画面のアプリだけをビルドして試すときは `app\build.ps1`。「ダウンロード」フォルダに `MiniTone.exe` ができる。
+- ビルドの途中のファイルと、開発用の登録のスクリプトは `%LOCALAPPDATA%\akiraak-minitone-dev` に置かれる。
 
 ## 入れる
 
-`equalizer-setup.exe` を実行する。
+`MiniTone-setup.exe` を実行する。
 
 - 管理者の確認（UAC）が出る。
 - インストーラに署名が無いので、Windows の SmartScreen の警告が出る。「詳細情報」→「実行」で進む。
-- 画面のアプリを `C:\Program Files\equalizer` に置き、APO を登録して、有効な出力デバイス全部に取り付ける。途中で音が一度止まる。
-- 変える前のレジストリを `C:\ProgramData\akiraak-equalizer` に書き出す。
+- 画面のアプリを `C:\Program Files\MiniTone` に置き、APO を登録して、有効な出力デバイス全部に取り付ける。途中で音が一度止まる。
+- 変える前のレジストリを `C:\ProgramData\akiraak-minitone` に書き出す。
 
-入れたら、スタートメニューから equalizer を起動する。左端のスイッチを上（ON）にしてツマミを回すと、音が変わる。
+入れたら、スタートメニューから MiniTone を起動する。左端のスイッチを上（ON）にしてツマミを回すと、音が変わる。
 
 - ツマミ: 上下にドラッグ、ホイール、矢印キー。Shift を押しながらドラッグすると細かく動く。ダブルクリックで元の位置（0 dB、100%）に戻る。
 - 閉じるボタンではタスクトレイに残る。終了は、トレイのアイコンを右クリックして「終了」。
 
 ## 元に戻す
 
-Windows の「設定」→「アプリ」→「インストールされているアプリ」から equalizer をアンインストールする。
+Windows の「設定」→「アプリ」→「インストールされているアプリ」から MiniTone をアンインストールする。
 
-出力デバイスから APO を外し、登録を消し、`DisableProtectedAudioDG` を入れる前の状態に戻し、DLL とアプリを消す。入れる前のレジストリの控えと設定は `C:\ProgramData\akiraak-equalizer` に残る。
+出力デバイスから APO を外し、登録を消し、`DisableProtectedAudioDG` を入れる前の状態に戻し、DLL とアプリを消す。入れる前のレジストリの控えと設定は `C:\ProgramData\akiraak-minitone` に残る。
 
 すぐ音だけ元に戻したいときは、画面のスイッチを OFF にするか、設定ファイルの 1 行目を `enabled=0` にする。
 
@@ -106,7 +106,7 @@ Windows の「設定」→「アプリ」→「インストールされている
 インストーラを使わずに、APO だけを登録・解除できる。管理者の PowerShell で実行する。
 
 ```powershell
-cd $env:LOCALAPPDATA\akiraak-equalizer-dev
+cd $env:LOCALAPPDATA\akiraak-minitone-dev
 powershell -ExecutionPolicy Bypass -File .\install-apo.ps1 -AllDevices
 powershell -ExecutionPolicy Bypass -File .\uninstall-apo.ps1
 ```
@@ -133,7 +133,7 @@ powershell -ExecutionPolicy Bypass -File .\uninstall-apo.ps1
 
 ## ログ
 
-APO のログは `C:\ProgramData\akiraak-equalizer\equalizer_apo.log`。音が変わらないときは、ここに `audiodg.exe` からの記録があるかを見る。
+APO のログは `C:\ProgramData\akiraak-minitone\minitone_apo.log`。音が変わらないときは、ここに `audiodg.exe` からの記録があるかを見る。
 
 ## License
 

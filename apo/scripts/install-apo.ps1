@@ -29,9 +29,9 @@ $ModesGuid = '{d3993a3f-99c2-4402-b5ec-a92a0367664b}'
 $DefaultMode = '{C18E2F7E-933D-4965-B7D1-1EEF228D2AF3}'
 $RenderPath = 'SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render'
 $AudioPath = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Audio'
-$SettingsPath = 'SOFTWARE\akiraak\equalizer'
-$InstallDir = Join-Path $env:ProgramFiles 'akiraak-equalizer'
-$StateDir = Join-Path $env:ProgramData 'akiraak-equalizer'
+$SettingsPath = 'SOFTWARE\akiraak\minitone'
+$InstallDir = Join-Path $env:ProgramFiles 'akiraak-minitone'
+$StateDir = Join-Path $env:ProgramData 'akiraak-minitone'
 $StateFile = Join-Path $StateDir 'install-state.json'
 $ConfigDir = Join-Path $StateDir 'config'
 $SettingsFile = Join-Path $ConfigDir 'settings.txt'
@@ -176,8 +176,8 @@ if (-not $DryRun -and -not (Test-Admin)) {
 
 if (-not $DllPath) {
     # スクリプトと同じフォルダに DLL があればそれを、無ければビルドの出力を使う。
-    $DllPath = Join-Path $PSScriptRoot 'equalizer_apo.dll'
-    if (-not (Test-Path $DllPath)) { $DllPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'build\equalizer_apo.dll' }
+    $DllPath = Join-Path $PSScriptRoot 'minitone_apo.dll'
+    if (-not (Test-Path $DllPath)) { $DllPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'build\minitone_apo.dll' }
 }
 if (-not (Test-Path $DllPath)) { throw "DLL が見つからない: $DllPath（先に build.ps1 でビルドする）" }
 
@@ -228,7 +228,7 @@ if (Test-Path $StateFile) {
 
 # 2. DLL を置く
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
-$installedDll = Join-Path $InstallDir 'equalizer_apo.dll'
+$installedDll = Join-Path $InstallDir 'minitone_apo.dll'
 $sameDll = (Test-Path $installedDll) -and
     ((Get-FileHash $installedDll).Hash -eq (Get-FileHash $DllPath).Hash)
 if (-not $sameDll) {
@@ -316,6 +316,6 @@ if ((Get-Service -Name audiosrv).Status -eq 'Running') {
 
 ''
 '取り付けた。音が出るかを確かめること。'
-"ログ: $StateDir\equalizer_apo.log"
+"ログ: $StateDir\minitone_apo.log"
 "控え: $StateDir"
 '元に戻すには uninstall-apo.ps1 を管理者の PowerShell で実行する。'

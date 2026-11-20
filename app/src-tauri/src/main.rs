@@ -31,7 +31,7 @@ struct StatePayload {
 /// 設定のフォルダ。APO の登録のときに作られ、一般のユーザーが書ける。
 fn config_dir() -> PathBuf {
     let program_data = std::env::var_os("ProgramData").unwrap_or_else(|| "C:\\ProgramData".into());
-    PathBuf::from(program_data).join("akiraak-equalizer").join("config")
+    PathBuf::from(program_data).join("akiraak-minitone").join("config")
 }
 
 fn settings_path() -> PathBuf {
@@ -141,7 +141,7 @@ fn main() {
             let menu = Menu::with_items(app, &[&open, &toggle, &quit])?;
 
             let mut tray = TrayIconBuilder::with_id("main")
-                .tooltip("Equalizer")
+                .tooltip("MiniTone")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {

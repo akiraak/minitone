@@ -2,10 +2,10 @@
 # 先に apo\build.ps1 で APO の DLL をビルドしておくこと（インストーラに同梱する）。
 #
 # 要るもの: Tauri の CLI（バージョン 2）。全体には入れず、作業フォルダに入れてある:
-#   cargo install tauri-cli --version "^2" --locked --root "$env:LOCALAPPDATA\akiraak-equalizer-dev\tools"
+#   cargo install tauri-cli --version "^2" --locked --root "$env:LOCALAPPDATA\akiraak-minitone-dev\tools"
 # NSIS 本体は、Tauri の CLI が初回に %LOCALAPPDATA%\tauri へ取ってくる。
 #
-# 出力: ユーザーの「ダウンロード」フォルダの equalizer-setup.exe
+# 出力: ユーザーの「ダウンロード」フォルダの MiniTone-setup.exe
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 
@@ -20,16 +20,16 @@ function Get-DownloadsFolder {
 }
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$stage = Join-Path $env:LOCALAPPDATA 'akiraak-equalizer-dev'
+$stage = Join-Path $env:LOCALAPPDATA 'akiraak-minitone-dev'
 $target = Join-Path $stage 'target'
 $tauri = Join-Path $stage 'tools\bin\cargo-tauri.exe'
 if (-not (Test-Path $tauri)) { throw "Tauri の CLI が無い: $tauri（このファイルの先頭のコマンドで入れる）" }
 
-$dll = Join-Path (Split-Path -Parent $root) 'apo\build\equalizer_apo.dll'
+$dll = Join-Path (Split-Path -Parent $root) 'apo\build\minitone_apo.dll'
 if (-not (Test-Path $dll)) { throw "APO の DLL が無い: $dll（先に apo\build.ps1 を実行する）" }
 
 # cmd は UNC パス（WSL のフォルダ）をカレントにできないので、pushd で一時的にドライブを割り当てる。
-$bat = Join-Path $env:TEMP 'equalizer_installer_build.bat'
+$bat = Join-Path $env:TEMP 'minitone_installer_build.bat'
 $lines = @(
     '@echo off',
     "pushd `"$root\src-tauri`" || exit /b 1",
@@ -48,6 +48,6 @@ if ($exit -ne 0) { throw "インストーラのビルドに失敗した（exit=$
 $setup = Get-ChildItem (Join-Path $target 'release\bundle\nsis') -Filter '*-setup.exe' |
     Sort-Object LastWriteTime | Select-Object -Last 1
 if (-not $setup) { throw 'できたはずのインストーラが見つからない。' }
-$out = Join-Path (Get-DownloadsFolder) 'equalizer-setup.exe'
+$out = Join-Path (Get-DownloadsFolder) 'MiniTone-setup.exe'
 Copy-Item $setup.FullName $out -Force
 Get-Item $out | ForEach-Object { '{0} ({1} bytes)' -f $_.FullName, $_.Length }

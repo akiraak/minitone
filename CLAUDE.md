@@ -4,8 +4,11 @@
 
 ## プロジェクトの目的
 
-**sx360（Windows 11）で鳴る音の全部にかけるイコライザーアプリ。**
+**sx360（Windows 11）で鳴る音の全部にかけるイコライザーアプリ。アプリ名は MiniTone。**
 
+- アプリ名は **MiniTone**（2026-11-20 にユーザーが決定）。ウィンドウの題、スタートメニュー、「インストールされているアプリ」の表示、インストール先（`C:\Program Files\MiniTone`）、実行ファイル（`MiniTone.exe`）、インストーラ（`MiniTone-setup.exe`）がこの名前。
+  - 内部の名前も `minitone` にそろえた（同じ日）: GitHub のリポジトリ（`akiraak/minitone`）、設定とログのフォルダ（`C:\ProgramData\akiraak-minitone`）、APO の DLL（`minitone_apo.dll`）、レジストリの `SOFTWARE\akiraak\minitone`、開発用のフォルダ（`%LOCALAPPDATA%\akiraak-minitone-dev`）。前の名前は `equalizer`。APO の CLSID は変えていない。
+  - WSL のフォルダは `~/equalizer` のまま（project-manager の登録と合わせて変える。まだ変えていない）。
 - 対象は Windows 全体の音（ブラウザ、ゲーム、音楽プレイヤーなど、どのアプリの音にも効く）。特定のアプリの中だけの再生機能ではない。
 - sx360 の Windows 側で動く。
 
@@ -39,7 +42,7 @@
 
 ## 経緯
 
-- 2026-11-19 にユーザーが作ると決め、project-manager（`~/project-manager`）でリポジトリを作った。対象（Windows 全体の音）、名前（`equalizer`）、GitHub で公開することはそのときに決めた。
+- 2026-11-19 にユーザーが作ると決め、project-manager（`~/project-manager`）でリポジトリを作った。対象（Windows 全体の音）、名前（`equalizer`。2026-11-20 に MiniTone へ変えた）、GitHub で公開することはそのときに決めた。
 
 ## 開発環境
 
@@ -67,7 +70,7 @@
 
 ## 設定ファイル
 
-画面と APO は、設定ファイル `C:\ProgramData\akiraak-equalizer\config\settings.txt` でやり取りする。画面が書き、APO が読む。APO は 250 ms ごとに更新時刻を見て、変わっていれば再起動なしで反映する。
+画面と APO は、設定ファイル `C:\ProgramData\akiraak-minitone\config\settings.txt` でやり取りする。画面が書き、APO が読む。APO は 250 ms ごとに更新時刻を見て、変わっていれば再起動なしで反映する。
 
 ```
 enabled=1
@@ -93,16 +96,16 @@ cd /mnt/c && powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath 
 ```
 
 - APO: ビルドのあとにテスト（`dsp_test.exe`、`host_test.exe`）が走る。どちらも最後に `PASS (0 failures)` が出れば成功。
-- 画面のアプリは `app/build.ps1` を同じ形で呼ぶ。`cargo test` のあとにリリース版をビルドし、ユーザーの「ダウンロード」フォルダに `equalizer.exe` を置く。ビルドの出力（`target`）は `%LOCALAPPDATA%\akiraak-equalizer-dev` に置く（WSL のフォルダに置くと遅い）。
-- インストーラは `app/build-installer.ps1` でビルドする（先に `apo/build.ps1`）。Tauri の CLI（バージョン 2）は、全体には入れず `%LOCALAPPDATA%\akiraak-equalizer-dev\tools` に入れてある（全体に入っているのはバージョン 1 で、ほかのプロジェクト用）。できたものは、ユーザーの「ダウンロード」フォルダの `equalizer-setup.exe`。
-- **ユーザーに実行してもらうファイル（インストーラ、試すための `equalizer.exe`）は「ダウンロード」フォルダに作る**（2026-11-20、ユーザーの指示）。ビルドの途中のファイル、ツール、開発用の登録のスクリプトは `%LOCALAPPDATA%\akiraak-equalizer-dev` のまま。
+- 画面のアプリは `app/build.ps1` を同じ形で呼ぶ。`cargo test` のあとにリリース版をビルドし、ユーザーの「ダウンロード」フォルダに `MiniTone.exe` を置く。ビルドの出力（`target`）は `%LOCALAPPDATA%\akiraak-minitone-dev` に置く（WSL のフォルダに置くと遅い）。
+- インストーラは `app/build-installer.ps1` でビルドする（先に `apo/build.ps1`）。Tauri の CLI（バージョン 2）は、全体には入れず `%LOCALAPPDATA%\akiraak-minitone-dev\tools` に入れてある（全体に入っているのはバージョン 1 で、ほかのプロジェクト用）。できたものは、ユーザーの「ダウンロード」フォルダの `MiniTone-setup.exe`。
+- **ユーザーに実行してもらうファイル（インストーラ、試すための `MiniTone.exe`）は「ダウンロード」フォルダに作る**（2026-11-20、ユーザーの指示）。ビルドの途中のファイル、ツール、開発用の登録のスクリプトは `%LOCALAPPDATA%\akiraak-minitone-dev` のまま。
 - **インストーラの実行とアンインストールは、管理者の権限が要り、音の経路を変える。Claude Code は実行せず、ユーザーに実行してもらう。**
 - インストーラ（NSIS）は 32 bit のプロセス。フックから PowerShell を呼ぶときは、64 bit 版を `Sysnative` 経由で明示する。そうしないと、レジストリの書き込み先が 32 bit 用の場所にずれる。
 - Windows 側の Rust は 1.100.0（2026-11-19 に更新）。Tauri 2 のいまのクレートは 1.90 以上を要求する。
-- ビルドは、DLL と登録・解除のスクリプトを Windows 側の `%LOCALAPPDATA%\akiraak-equalizer-dev` にもそろえて置く。管理者の PowerShell から WSL のフォルダが見えないことがあるため。
+- ビルドは、DLL と登録・解除のスクリプトを Windows 側の `%LOCALAPPDATA%\akiraak-minitone-dev` にもそろえて置く。管理者の PowerShell から WSL のフォルダが見えないことがあるため。
 - `.ps1` は日本語を含むので、BOM 付きの UTF-8 で保存する（PowerShell 5.1 は BOM が無いと CP932 として読む）。
 - **APO の登録と解除（`install-apo.ps1`、`uninstall-apo.ps1`）は管理者の権限が要り、音の経路を変える。Claude Code は実行せず、ユーザーに実行してもらう。** `-DryRun` を付けると何も変えずに行う変更だけを表示するので、これは確認なしで実行してよい。
-- APO のログは `C:\ProgramData\akiraak-equalizer\equalizer_apo.log`。管理者でなくても読める。APO は LocalService の権限で動くので、登録のスクリプトがこのフォルダに書き込みの権限を付ける。
+- APO のログは `C:\ProgramData\akiraak-minitone\minitone_apo.log`。管理者でなくても読める。APO は LocalService の権限で動くので、登録のスクリプトがこのフォルダに書き込みの権限を付ける。
 
 ## 注意が必要な操作
 
@@ -117,7 +120,7 @@ cd /mnt/c && powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath 
 
 ## Git
 
-- リモートは `git@github.com:akiraak/equalizer.git`（公開のリポジトリ）。
+- リモートは `git@github.com:akiraak/minitone.git`（公開のリポジトリ）。
 - コミットメッセージは日本語で、何を変えたかを 1 行目に書く。
 - 秘密情報や、特定の人の環境の情報（ユーザー名、パス、デバイスの固有の ID など）はコミットしない。
 
