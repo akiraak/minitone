@@ -76,7 +76,8 @@ Download `MiniTone-setup.exe` from the [latest release](https://github.com/akira
 
 Then start MiniTone from the Start menu. Press the power button on the left to turn it on, and turn the knobs.
 
-- Knobs: drag left or right, use the mouse wheel, or use the arrow keys. Hold Shift while dragging for fine steps. Double-click a knob to return it to the center (0 dB, 100%). The RESET button under the power button returns all four knobs to the center.
+- The two small icons on the right switch between the knob view and the LED bar view. Both views work the same way.
+- Knobs and bars: drag left or right, use the mouse wheel, or use the arrow keys. Hold Shift while dragging for fine steps. Double-click a knob or a bar to return it to the center (0 dB, 100%). The RESET button under the power button returns all four knobs to the center.
 - The close button keeps the app in the system tray. To quit, right-click the tray icon and choose "Quit".
 - MiniTone does not start with Windows. The APO keeps applying your settings while the app is not running; start the app only when you want to change them.
 

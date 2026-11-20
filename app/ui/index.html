@@ -13,7 +13,7 @@
       <button type="button" id="attach" hidden></button>
     </div>
 
-    <!-- ツマミの絵は 4 つとも同じ部品を使う。目盛りと指針の位置は main.js が決める。 -->
+    <!-- ツマミの絵は 4 つとも同じ部品を使う（アナログの表示）。目盛りと指針の位置は main.js が決める。 -->
     <svg width="0" height="0" aria-hidden="true" focusable="false">
       <defs>
         <radialGradient id="knob-body" cx="35%" cy="28%" r="80%">
@@ -96,7 +96,41 @@
         <span class="label">VOLUME</span>
         <span class="value" id="volume-value"></span>
       </div>
+
+      <!-- デジタルの表示。ツマミの代わりに、LED の並んだ横のバーを 4 行。LED と、まんなかの印は main.js が並べる。 -->
+      <div id="bars">
+        <div class="row">
+          <span class="label">BASS</span>
+          <div class="bar" id="bass-bar" role="slider" tabindex="0" aria-label="Bass"></div>
+          <span class="num"><b id="bass-num"></b><i id="bass-unit"></i></span>
+        </div>
+        <div class="row">
+          <span class="label">MID</span>
+          <div class="bar" id="mid-bar" role="slider" tabindex="0" aria-label="Mid"></div>
+          <span class="num"><b id="mid-num"></b><i id="mid-unit"></i></span>
+        </div>
+        <div class="row">
+          <span class="label">TREBLE</span>
+          <div class="bar" id="treble-bar" role="slider" tabindex="0" aria-label="Treble"></div>
+          <span class="num"><b id="treble-num"></b><i id="treble-unit"></i></span>
+        </div>
+        <div class="row">
+          <span class="label">VOLUME</span>
+          <div class="bar" id="volume-bar" role="slider" tabindex="0" aria-label="Volume"></div>
+          <span class="num"><b id="volume-num"></b><i id="volume-unit"></i></span>
+        </div>
+      </div>
     </main>
+
+    <!-- 表示の切り替え。上がツマミ、下がバー。いまの表示のほうがオレンジに光る。 -->
+    <div id="view">
+      <button type="button" id="view-analog" aria-pressed="true" aria-label="Knob view" title="Knobs">
+        <svg viewBox="-12 -12 24 24" aria-hidden="true"><circle r="8" /><path d="M0 -1.5L4.2 -5.7" /></svg>
+      </button>
+      <button type="button" id="view-digital" aria-pressed="false" aria-label="Bar view" title="Bars">
+        <svg viewBox="-12 -12 24 24" aria-hidden="true"><path d="M-8 -6H1M-8 0H7M-8 6H-3" /></svg>
+      </button>
+    </div>
 
     <footer id="status"></footer>
 

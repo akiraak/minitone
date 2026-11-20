@@ -8,6 +8,8 @@ const { listen } = window.__TAURI__.event;
 const powerButton = document.getElementById("power");
 const powerLabel = document.getElementById("power-label");
 const resetButton = document.getElementById("reset");
+const viewAnalogButton = document.getElementById("view-analog");
+const viewDigitalButton = document.getElementById("view-digital");
 const noticeElement = document.getElementById("notice");
 const noticeText = document.getElementById("notice-text");
 const attachButton = document.getElementById("attach");
@@ -15,7 +17,7 @@ const statusElement = document.getElementById("status");
 
 // ツマミは、まんなか（真上）から左右に 135 度ずつ回る。
 const SWEEP_DEGREES = 270;
-// 端から端まで回すのに要る、マウスの横の移動量（px）。
+// ツマミを端から端まで回すのに要る、マウスの横の移動量（px）。
 const DRAG_PIXELS = 220;
 
 let state = { enabled: false, treble: 0, mid: 0, bass: 0, volume: 100 };
@@ -34,13 +36,32 @@ function formatPercent(value) {
   return Math.round(value) + "%";
 }
 
-// ツマミを 1 つ用意する。
+// 調整する値を 1 つ用意する。ツマミ（アナログの表示）と LED のバー（デジタルの表示）の両方を受け持つ。
 //   key: state のどの値か / min, max, step: 範囲と刻み / reset: ダブルクリックで戻る値
 //   detent: この値の近くで止まりやすくする（まんなかの位置など）。無ければ null
-function setupKnob({ key, min, max, step, reset, detent, format }) {
+//   origin: バーが光りはじめる位置（BASS などは 0 dB、VOLUME は 0%）
+//   segments: バーの LED の数 / hotFrom: この値から上の LED は明るい色にする。無ければ null
+function setupKnob({ key, min, max, step, reset, detent, format, origin, segments, hotFrom }) {
   const element = document.getElementById(key);
   const pointer = element.querySelector(".pointer");
   const valueElement = document.getElementById(key + "-value");
+  const bar = document.getElementById(key + "-bar");
+  const numberElement = document.getElementById(key + "-num");
+  const unitElement = document.getElementById(key + "-unit");
+
+  // バーの LED と、まんなか（止まりやすい位置）の印を並べる。
+  const segmentSize = (max - min) / segments;
+  const leds = [];
+  for (let index = 0; index < segments; index++) {
+    const led = document.createElement("s");
+    bar.appendChild(led);
+    leds.push(led);
+  }
+  if (detent !== null) {
+    const mark = document.createElement("u");
+    mark.style.left = ((detent - min) / (max - min)) * 100 + "%";
+    bar.appendChild(mark);
+  }
 
   const snap = (value) => {
     let snapped = Math.round(value / step) * step;
@@ -50,13 +71,32 @@ function setupKnob({ key, min, max, step, reset, detent, format }) {
 
   const render = () => {
     const value = state[key];
+    const text = format(value);
+
     const angle = ((value - min) / (max - min) - 0.5) * SWEEP_DEGREES;
     pointer.setAttribute("transform", `rotate(${angle})`);
-    valueElement.textContent = format(value);
-    element.setAttribute("aria-valuemin", String(min));
-    element.setAttribute("aria-valuemax", String(max));
-    element.setAttribute("aria-valuenow", String(value));
-    element.setAttribute("aria-valuetext", format(value));
+    valueElement.textContent = text;
+
+    // origin から value までの LED を光らせる。少しでも動いていれば、1 つめが光る。
+    const low = Math.min(origin, value);
+    const high = Math.max(origin, value);
+    leds.forEach((led, index) => {
+      const start = min + index * segmentSize;
+      const lit = start + segmentSize > low + 1e-9 && start < high - 1e-9;
+      led.classList.toggle("lit", lit);
+      led.classList.toggle("hot", lit && hotFrom !== null && start >= hotFrom - 1e-9);
+    });
+    // 数字と単位（"+6.0 dB"、"125%"）を分けて出す。
+    const parts = text.match(/^(.*?)\s?(dB|%)$/);
+    numberElement.textContent = parts ? parts[1] : text;
+    unitElement.textContent = parts ? parts[2] : "";
+
+    for (const target of [element, bar]) {
+      target.setAttribute("aria-valuemin", String(min));
+      target.setAttribute("aria-valuemax", String(max));
+      target.setAttribute("aria-valuenow", String(value));
+      target.setAttribute("aria-valuetext", text);
+    }
   };
 
   const change = (value) => {
@@ -67,59 +107,70 @@ function setupKnob({ key, min, max, step, reset, detent, format }) {
     scheduleSave();
   };
 
-  // 左右にドラッグして回す（右で増える）。止まりやすい位置を通り抜けられるよう、丸める前の値を覚えておく。
-  let dragStartX = 0;
-  let dragStartValue = 0;
-  element.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0) return;
-    element.setPointerCapture(event.pointerId);
-    element.classList.add("dragging");
-    dragStartX = event.clientX;
-    dragStartValue = state[key];
-  });
-  element.addEventListener("pointermove", (event) => {
-    if (!element.hasPointerCapture(event.pointerId)) return;
-    const fine = event.shiftKey ? 0.25 : 1; // Shift を押している間は細かく動かす
-    const delta = ((event.clientX - dragStartX) / DRAG_PIXELS) * (max - min) * fine;
-    change(dragStartValue + delta);
-  });
-  const endDrag = (event) => {
-    if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId);
-    element.classList.remove("dragging");
-  };
-  element.addEventListener("pointerup", endDrag);
-  element.addEventListener("pointercancel", endDrag);
-
-  // ホイールで 1 刻みずつ。
-  element.addEventListener(
-    "wheel",
-    (event) => {
-      event.preventDefault();
-      change(state[key] + (event.deltaY < 0 ? step : -step));
-    },
-    { passive: false }
-  );
-
-  // ダブルクリックで元の位置へ。
-  element.addEventListener("dblclick", () => change(reset));
-
-  // キーボード。
-  element.addEventListener("keydown", (event) => {
-    const big = step * 5;
-    const moves = {
-      ArrowUp: step,
-      ArrowRight: step,
-      ArrowDown: -step,
-      ArrowLeft: -step,
-      PageUp: big,
-      PageDown: -big,
+  // ツマミにもバーにも、同じ操作を付ける。
+  //   dragPixels: 端から端まで動かすのに要る、マウスの横の移動量（px）を返す関数
+  const attach = (target, dragPixels) => {
+    // 左右にドラッグして動かす（右で増える）。押した場所へ値が飛ぶことはない。
+    // 止まりやすい位置を通り抜けられるよう、丸める前の値を覚えておく。
+    let dragStartX = 0;
+    let dragStartValue = 0;
+    let dragSpan = 1;
+    target.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      target.setPointerCapture(event.pointerId);
+      target.classList.add("dragging");
+      dragStartX = event.clientX;
+      dragStartValue = state[key];
+      dragSpan = Math.max(1, dragPixels());
+    });
+    target.addEventListener("pointermove", (event) => {
+      if (!target.hasPointerCapture(event.pointerId)) return;
+      const fine = event.shiftKey ? 0.25 : 1; // Shift を押している間は細かく動かす
+      const delta = ((event.clientX - dragStartX) / dragSpan) * (max - min) * fine;
+      change(dragStartValue + delta);
+    });
+    const endDrag = (event) => {
+      if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
+      target.classList.remove("dragging");
     };
-    if (event.key in moves) change(state[key] + moves[event.key]);
-    else if (event.key === "Home") change(min);
-    else if (event.key === "End") change(max);
-    else return;
-    event.preventDefault();
-  });
+    target.addEventListener("pointerup", endDrag);
+    target.addEventListener("pointercancel", endDrag);
+
+    // ホイールで 1 刻みずつ。
+    target.addEventListener(
+      "wheel",
+      (event) => {
+        event.preventDefault();
+        change(state[key] + (event.deltaY < 0 ? step : -step));
+      },
+      { passive: false }
+    );
+
+    // ダブルクリックで元の位置へ。
+    target.addEventListener("dblclick", () => change(reset));
+
+    // キーボード。
+    target.addEventListener("keydown", (event) => {
+      const big = step * 5;
+      const moves = {
+        ArrowUp: step,
+        ArrowRight: step,
+        ArrowDown: -step,
+        ArrowLeft: -step,
+        PageUp: big,
+        PageDown: -big,
+      };
+      if (event.key in moves) change(state[key] + moves[event.key]);
+      else if (event.key === "Home") change(min);
+      else if (event.key === "End") change(max);
+      else return;
+      event.preventDefault();
+    });
+  };
+
+  attach(element, () => DRAG_PIXELS);
+  // バーは、マウスの動きと光る位置がそろうよう、バーの幅を端から端までの移動量にする。
+  attach(bar, () => bar.getBoundingClientRect().width);
 
   knobs[key] = { render, reset: () => change(reset) };
 }
@@ -164,7 +215,18 @@ async function load() {
 
   const tone = payload.maxToneDb;
   for (const key of ["bass", "mid", "treble"]) {
-    setupKnob({ key, min: -tone, max: tone, step: 0.5, reset: 0, detent: 0, format: formatDb });
+    setupKnob({
+      key,
+      min: -tone,
+      max: tone,
+      step: 0.5,
+      reset: 0,
+      detent: 0,
+      format: formatDb,
+      origin: 0,
+      segments: 40,
+      hotFrom: null,
+    });
   }
   setupKnob({
     key: "volume",
@@ -174,6 +236,9 @@ async function load() {
     reset: 100,
     detent: 100,
     format: formatPercent,
+    origin: 0,
+    segments: 30,
+    hotFrom: 100,
   });
 
   device = payload.device;
@@ -234,6 +299,34 @@ powerButton.addEventListener("click", () => {
 resetButton.addEventListener("click", () => {
   Object.values(knobs).forEach((knob) => knob.reset());
 });
+
+// 表示の切り替え（ツマミ / LED のバー）。どちらを使うかは、この PC の画面のアプリが覚える。
+// 音には関係しないので、設定ファイルには書かない。
+const VIEW_KEY = "minitone.view";
+
+function setView(view) {
+  const digital = view === "digital";
+  document.body.classList.toggle("digital", digital);
+  viewAnalogButton.setAttribute("aria-pressed", String(!digital));
+  viewDigitalButton.setAttribute("aria-pressed", String(digital));
+  try {
+    localStorage.setItem(VIEW_KEY, digital ? "digital" : "analog");
+  } catch (error) {
+    // 覚えられなくても、表示の切り替えはできる。
+  }
+}
+
+function savedView() {
+  try {
+    return localStorage.getItem(VIEW_KEY);
+  } catch (error) {
+    return null;
+  }
+}
+
+viewAnalogButton.addEventListener("click", () => setView("analog"));
+viewDigitalButton.addEventListener("click", () => setView("digital"));
+setView(savedView());
 
 // トレイのメニューから入り切りされたとき。
 listen("state-changed", (event) => {

@@ -80,6 +80,8 @@ body.on #power .mark {
    キーボードの操作とみなされて枠が出てしまうため。 */
 #power:focus-visible,
 #reset:focus-visible,
+#view button:focus-visible,
+.bar:focus-visible,
 .knob:focus-visible {
   outline: none;
 }
@@ -143,19 +145,20 @@ main {
 }
 
 /* 横の並び（ウィンドウの幅 688 px）:
-   電源の区画 92 px、縦線 2 px、そのあと「空き 26 px + ツマミ 116 px」が 4 つ、右の端の空き 26 px。 */
+   電源の区画 78 px、縦線 2 px、そのあと「空き 22 px + ツマミ 116 px」が 4 つ、
+   空き 22 px、表示の切り替えの絵 20 px、右の端の空き 14 px。 */
 .control {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 5px;
   width: 116px;
-  margin-left: 26px;
+  margin-left: 22px;
 }
 
 /* 電源の列は、上から 電源のボタン、POWER、ON / OFF、RESET。区画のまんなかに置く。 */
 .control.power {
-  width: 92px;
+  width: 78px;
   margin-left: 0;
   margin-right: 2px;
   gap: 4px;
@@ -191,12 +194,12 @@ main {
 }
 
 /* 電源の列と BASS の列の間の縦線。暗い線と明るい線を 1 px ずつ並べ、パネルに彫った溝に見せる。
-   位置は、電源の区画（92 px）のすぐ右。
+   位置は、電源の区画（78 px）のすぐ右。
    ウィンドウの上の端と下の端から 8 px ずつ空ける（body の上下の余白 14 px と 12 px の中に、はみ出させる）。 */
 main::before {
   content: "";
   position: absolute;
-  left: 92px;
+  left: 78px;
   top: -6px;
   bottom: -4px;
   width: 2px;
@@ -267,6 +270,148 @@ body:not(.on) .knob .over {
 
 body:not(.on) .value {
   color: var(--muted);
+}
+
+/* ---- デジタルの表示（LED のバー）と、表示の切り替え ---- */
+
+body.digital .control:not(.power) {
+  display: none;
+}
+
+body:not(.digital) #bars {
+  display: none;
+}
+
+/* 左の空きは 22 px（ツマミのときと同じ）。右は、空き 22 px + 切り替えの絵 20 px + 端の空き 14 px。 */
+#bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 0 56px 0 22px;
+}
+
+#bars .row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+#bars .label {
+  width: 66px;
+  text-align: right;
+}
+
+.bar {
+  position: relative;
+  flex: 1;
+  display: flex;
+  gap: 2px;
+  height: 14px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.bar.dragging {
+  cursor: grabbing;
+}
+
+/* LED の 1 粒。 */
+.bar s {
+  flex: 1;
+  border-radius: 1px;
+  background: #34363d;
+}
+
+.bar s.lit {
+  background: var(--accent);
+  box-shadow: 0 0 5px rgba(255, 138, 61, 0.55);
+}
+
+/* 100% を超えた分は、明るい色にする。 */
+.bar s.lit.hot {
+  background: #ffc089;
+}
+
+/* まんなか（0 dB、100%）の印。 */
+.bar u {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 1px;
+  margin-left: -1.5px;
+  background: var(--tick);
+}
+
+#bars .num {
+  width: 70px;
+  color: var(--accent);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+#bars .num b {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+#bars .num i {
+  margin-left: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  font-style: normal;
+}
+
+/* 切ってあるときは、ツマミと同じように色を落とす（バーは動かせる）。 */
+body:not(.on) .bar s.lit {
+  background: var(--tick);
+  box-shadow: none;
+}
+
+body:not(.on) #bars .num {
+  color: var(--muted);
+}
+
+/* 表示の切り替え。右の端のまんなかに、小さい絵を縦に 2 つ。 */
+#view {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transform: translateY(-50%);
+}
+
+#view button {
+  width: 20px;
+  height: 20px;
+  padding: 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+#view svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--tick);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#view button:hover svg {
+  stroke: var(--text);
+}
+
+#view button[aria-pressed="true"] svg {
+  stroke: var(--accent);
 }
 
 footer {
