@@ -8,6 +8,8 @@ const { listen } = window.__TAURI__.event;
 const powerButton = document.getElementById("power");
 const powerLabel = document.getElementById("power-label");
 const noticeElement = document.getElementById("notice");
+const noticeText = document.getElementById("notice-text");
+const attachButton = document.getElementById("attach");
 const statusElement = document.getElementById("status");
 
 // ツマミは、まんなか（真上）から左右に 135 度ずつ回る。
@@ -16,6 +18,10 @@ const SWEEP_DEGREES = 270;
 const DRAG_PIXELS = 220;
 
 let state = { enabled: false, treble: 0, bass: 0, volume: 100 };
+// いまの出力デバイスの状態（Rust 側の DeviceStatus）。
+let device = null;
+let attaching = false;
+let attachError = "";
 const knobs = {};
 
 function formatDb(value) {
@@ -168,12 +174,53 @@ async function load() {
     format: formatPercent,
   });
 
-  if (!payload.apoInstalled) {
-    noticeElement.hidden = false;
-    noticeElement.textContent = "音を処理する部品（APO）が入っていないので、ツマミを回しても音は変わりません。";
-  }
+  device = payload.device;
   render();
+  renderDevice();
 }
+
+// いまの出力デバイスにツマミが効かないとき、パネルの上の端で知らせる。
+function renderDevice() {
+  let text = "";
+  let canAttach = false;
+  if (device && !device.apoRegistered) {
+    text = "音を処理する部品が入っていません。インストーラで入れ直してください。";
+  } else if (device && device.deviceId && !device.attached) {
+    const name = device.deviceName || "いまの出力デバイス";
+    text = attachError || `「${name}」には、まだ効きません。`;
+    canAttach = true;
+  }
+  noticeElement.hidden = text === "";
+  noticeText.textContent = text;
+  noticeText.title = text;
+  attachButton.hidden = !canAttach;
+  attachButton.disabled = attaching;
+  attachButton.textContent = attaching ? "取り付け中…" : "効くようにする";
+}
+
+// 取り付ける。Windows の確認（UAC）が出て、音が一度止まる。
+attachButton.addEventListener("click", async () => {
+  if (attaching) return;
+  attaching = true;
+  attachError = "";
+  renderDevice();
+  try {
+    device = await invoke("attach_device");
+  } catch (error) {
+    attachError = String(error);
+  } finally {
+    attaching = false;
+    renderDevice();
+  }
+});
+
+// 出力デバイスが切り替わった、または取り付けの状態が変わったとき。
+listen("device-changed", (event) => {
+  const changedDevice = !device || device.deviceId !== event.payload.deviceId;
+  device = event.payload;
+  if (changedDevice) attachError = "";
+  renderDevice();
+});
 
 powerButton.addEventListener("click", () => {
   state.enabled = !state.enabled;

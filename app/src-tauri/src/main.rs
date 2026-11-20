@@ -1,11 +1,15 @@
 // リリース版では、コンソールのウィンドウを出さない。
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod devices;
 mod settings;
 
 use std::fs;
+use std::collections::HashSet;
 use std::path::PathBuf;
+use std::time::Duration;
 
+use devices::DeviceStatus;
 use serde::Serialize;
 use settings::EqState;
 use tauri::menu::{Menu, MenuItem};
@@ -17,8 +21,8 @@ use tauri::{AppHandle, Emitter, Manager, WindowEvent};
 #[serde(rename_all = "camelCase")]
 struct StatePayload {
     state: EqState,
-    /// APO が入っているか（設定のフォルダがあるか）。
-    apo_installed: bool,
+    /// いまの出力デバイスに APO が付いているか、など。
+    device: DeviceStatus,
     settings_path: String,
     max_tone_db: f64,
     max_volume_percent: f64,
@@ -58,7 +62,7 @@ fn write_state(state: &EqState) -> Result<(), String> {
 fn get_state() -> StatePayload {
     StatePayload {
         state: read_state(),
-        apo_installed: config_dir().is_dir(),
+        device: devices::current_status(),
         settings_path: settings_path().to_string_lossy().into_owned(),
         max_tone_db: settings::MAX_TONE_DB,
         max_volume_percent: settings::MAX_VOLUME_PERCENT,
@@ -70,6 +74,45 @@ fn set_state(state: EqState) -> Result<EqState, String> {
     let state = state.sanitized();
     write_state(&state)?;
     Ok(state)
+}
+
+/// いまの出力デバイスに APO を取り付ける（まだ付いていない出力デバイス全部に取り付ける）。
+/// Windows の確認（UAC）が出る。終わったあとの状態を返す。
+#[tauri::command]
+async fn attach_device() -> Result<DeviceStatus, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        devices::attach_all_devices()?;
+        let status = devices::current_status();
+        if status.device_id.is_some() && !status.attached {
+            return Err("このデバイスには取り付けられませんでした。".to_string());
+        }
+        Ok(status)
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+/// 出力デバイスの切り替わりを見張る。状態が変わったら画面に知らせる。
+/// APO が付いていないデバイスを新しく見つけたときは、ウィンドウを前に出して気づかせる
+/// （デバイス 1 つにつき、アプリの起動中に 1 回だけ）。
+fn watch_devices(app: AppHandle) {
+    std::thread::spawn(move || {
+        let mut last: Option<DeviceStatus> = None;
+        let mut announced: HashSet<String> = HashSet::new();
+        loop {
+            let status = devices::current_status();
+            if last.as_ref() != Some(&status) {
+                let _ = app.emit("device-changed", &status);
+                if let Some(id) = &status.device_id {
+                    if status.apo_registered && !status.attached && announced.insert(id.clone()) {
+                        show_main_window(&app);
+                    }
+                }
+                last = Some(status);
+            }
+            std::thread::sleep(Duration::from_secs(2));
+        }
+    });
 }
 
 fn show_main_window(app: &AppHandle) {
@@ -122,6 +165,7 @@ fn main() {
                 tray = tray.icon(icon.clone());
             }
             tray.build(app)?;
+            watch_devices(app.handle().clone());
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -131,7 +175,7 @@ fn main() {
                 api.prevent_close();
             }
         })
-        .invoke_handler(tauri::generate_handler![get_state, set_state])
+        .invoke_handler(tauri::generate_handler![get_state, set_state, attach_device])
         .run(tauri::generate_context!())
         .expect("アプリを起動できません");
 }

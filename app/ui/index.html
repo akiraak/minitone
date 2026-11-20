@@ -7,7 +7,11 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <p id="notice" hidden></p>
+    <!-- いまの出力デバイスにまだ効かないとき、などの知らせ。パネルの上の端に重ねて出す。 -->
+    <div id="notice" hidden>
+      <span id="notice-text"></span>
+      <button type="button" id="attach" hidden>効くようにする</button>
+    </div>
 
     <!-- ツマミの絵は 3 つとも同じ部品を使う。目盛りと指針の位置は main.js が決める。 -->
     <svg width="0" height="0" aria-hidden="true" focusable="false">

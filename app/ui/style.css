@@ -88,12 +88,48 @@ body.on #power .mark {
   top: 0;
   left: 0;
   right: 0;
-  margin: 0;
-  padding: 3px 12px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 26px;
+  padding: 2px 12px;
   background: #5a2a0c;
   color: #ffd9bd;
-  font-size: 11px;
-  text-align: center;
+  font-size: 12px;
+}
+
+#notice[hidden] {
+  display: none;
+}
+
+#notice-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#attach {
+  flex: none;
+  padding: 2px 12px;
+  border: 1px solid #ffd9bd;
+  border-radius: 11px;
+  background: #ffd9bd;
+  color: #3d1c08;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#attach:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+#attach:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
 }
 
 main {

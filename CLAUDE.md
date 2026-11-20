@@ -17,7 +17,7 @@
   - APO が落ちると Windows 全体の音が止まる。APO の中の処理は小さく保ち、設定の読み込みなど失敗しうる処理は音の処理の経路の外に置く。
   - **APO は C++ で書く**（Microsoft の見本と基底クラスがあるため）。
   - **APO は署名しない。** 読み込ませるために、レジストリの `DisableProtectedAudioDG` を 1 にして Windows の署名の検査を切る（ユーザーが 2026-11-19 に了承。Equalizer APO と同じ方法）。副作用として、保護された音の経路を要求するアプリ（DRM 付きの再生など）が音を出さなくなることがある。README に書いて使う人に知らせる。
-  - APO は出力デバイスごとに登録する。新しい出力デバイスは 1 回の登録（管理者の権限）が要る。
+  - APO は出力デバイスごとに登録する。新しい出力デバイスは 1 回の登録（管理者の権限）が要る。画面のアプリは、いまの出力デバイスに APO が付いていなければ知らせ、ボタンで登録のスクリプトを管理者として起動する。
   - **APO は MFX の段に入れる。** ドライバの APO が並んでいる値の先頭に CLSID を足す。EFX の段は sx360 の Bluetooth のヘッドホンで効かなかった。MFX は RAW のモードで再生するアプリの音には効かない。
   - 音のエンジンは APO を集約（COM aggregation）して生成する。APO は集約に対応していること。
   - 登録のしかた、実装の決まりの調査結果は `docs/plans/custom-apo.md` にある。
@@ -57,8 +57,9 @@
 - `apo/test/dsp_test.cpp` — フィルタと設定の読み取りの単体テスト。WSL の g++ でもビルドできる。
 - `apo/test/host_test.cpp` — DLL を Windows の音のエンジン無しで読み込み、音のエンジンが行う呼び出しをまねて確かめるテスト。
 - `apo/build.ps1` — DLL とテストをビルドし、テストを走らせる。出力は `apo/build/`（コミットしない）。
-- `apo/scripts/install-apo.ps1`、`uninstall-apo.ps1` — 開発用。APO を Windows に登録して出力デバイスに取り付ける／元に戻す。
-- `app/src-tauri/` — 画面のアプリ（Tauri 2、Rust）。`settings.rs` が設定ファイルの書式、`main.rs` がコマンドとタスクトレイ。
+- `apo/scripts/install-apo.ps1`、`uninstall-apo.ps1` — APO を Windows に登録して出力デバイスに取り付ける／元に戻す。インストーラと画面のアプリも、これを呼ぶ。
+- `apo/scripts/detach-default-device.ps1` — 開発用。いまの既定の出力デバイスからだけ APO を外す（「あとからつないだデバイス」の状態を作って、画面の知らせを試すため）。
+- `app/src-tauri/` — 画面のアプリ（Tauri 2、Rust）。`settings.rs` が設定ファイルの書式、`devices.rs` がいまの出力デバイスに APO が付いているかの判定と取り付け、`main.rs` がコマンドとタスクトレイ。
 - `app/ui/` — 画面（素の HTML / CSS / JavaScript）。3 つのツマミと入り切りのボタン。
 - `app/build.ps1` — 画面のアプリのテストとビルド。
 - `app/build-installer.ps1` — 使う人向けのインストーラ（NSIS の `setup.exe`）をビルドする。
