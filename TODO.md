@@ -20,10 +20,6 @@
 
 ## 実装
 
-- [ ] MID の表記を VOICE にしたら、分かりやすくなるか、分かりにくくなるかを考える
-  - 2026-11-20 にユーザーが指示（原文「Midの表記はVoiceにしたら分かりやすくなるか分かりにくくなるか考える」）
-  - 関連: MID を 2 kHz（声の聞き取りに効く帯域）に決めた経緯（[済んだプラン](docs/plans/archive/three-band-tone.md)）
-
 ## 配布
 
 - [~] 配布の準備をする [plan](docs/plans/distribution.md)

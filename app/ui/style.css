@@ -253,6 +253,14 @@ main::before {
   color: var(--muted);
   font-size: 11px;
   letter-spacing: 0.26em;
+  white-space: nowrap;
+}
+
+/* MID に添える "(VOICE)"。名前より小さく、暗い字。 */
+.label small {
+  color: var(--tick);
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
 }
 
 .value {
@@ -300,8 +308,9 @@ body:not(.digital) #bars {
   gap: 14px;
 }
 
+/* いちばん長い名前（"MID (VOICE)"）が 1 行に入る幅。 */
 #bars .label {
-  width: 66px;
+  width: 90px;
   text-align: right;
 }
 
@@ -424,6 +433,12 @@ body:not(.curve) #curve {
   font-size: 9.5px;
   letter-spacing: 0.2em;
   text-anchor: middle;
+}
+
+#curve .name tspan {
+  fill: var(--tick);
+  font-size: 8px;
+  letter-spacing: 0.14em;
 }
 
 #curve-line {

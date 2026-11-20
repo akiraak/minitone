@@ -13,6 +13,7 @@
       <button type="button" id="attach" hidden></button>
     </div>
 
+    <!-- MID の名前には、小さい字で "(VOICE)" を添える（声の聞き取りに効く帯域だと分かるように）。 -->
     <!-- ツマミの絵は 4 つとも同じ部品を使う（アナログの表示）。目盛りと指針の位置は main.js が決める。 -->
     <svg width="0" height="0" aria-hidden="true" focusable="false">
       <defs>
@@ -57,7 +58,7 @@
       </div>
 
       <div class="control tone">
-        <div class="knob" id="mid" role="slider" tabindex="0" aria-label="Mid">
+        <div class="knob" id="mid" role="slider" tabindex="0" aria-label="Mid (voice)">
           <svg viewBox="-100 -100 200 200" aria-hidden="true">
             <path class="ticks" d="M -60.81 60.81 A 86 86 0 1 1 60.81 60.81" pathLength="100" stroke-dasharray="0.8 9.12" />
             <circle r="68" fill="#0d0e10" />
@@ -65,7 +66,7 @@
             <g class="pointer"><line x1="0" y1="-58" x2="0" y2="-30" /></g>
           </svg>
         </div>
-        <span class="label">MID</span>
+        <span class="label">MID<small> (VOICE)</small></span>
         <span class="value" id="mid-value"></span>
       </div>
 
@@ -94,7 +95,7 @@
         <g class="point" id="bass-point" role="slider" tabindex="0" aria-label="Bass">
           <circle class="dot" r="6" /><circle class="grab" r="14" /><text class="num"></text>
         </g>
-        <g class="point" id="mid-point" role="slider" tabindex="0" aria-label="Mid">
+        <g class="point" id="mid-point" role="slider" tabindex="0" aria-label="Mid (voice)">
           <circle class="dot" r="6" /><circle class="grab" r="14" /><text class="num"></text>
         </g>
         <g class="point" id="treble-point" role="slider" tabindex="0" aria-label="Treble">
@@ -125,8 +126,8 @@
           <span class="num"><b id="bass-num"></b><i id="bass-unit"></i></span>
         </div>
         <div class="row">
-          <span class="label">MID</span>
-          <div class="bar" id="mid-bar" role="slider" tabindex="0" aria-label="Mid"></div>
+          <span class="label">MID<small> (VOICE)</small></span>
+          <div class="bar" id="mid-bar" role="slider" tabindex="0" aria-label="Mid (voice)"></div>
           <span class="num"><b id="mid-num"></b><i id="mid-unit"></i></span>
         </div>
         <div class="row">

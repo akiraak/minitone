@@ -116,7 +116,7 @@ function magnitudeDb(c, hz) {
 // （フィルタの周波数の 150 Hz、5 kHz では、線は設定の値の半分ほどの高さしかない）。
 const CURVE_FILTERS = {
   bass: { name: "BASS", pointHz: 50, make: (db) => lowShelfFilter(150, db, 0.707) },
-  mid: { name: "MID", pointHz: 2000, make: (db) => peakingFilter(2000, db, 0.7) },
+  mid: { name: "MID", note: " (VOICE)", pointHz: 2000, make: (db) => peakingFilter(2000, db, 0.7) },
   treble: { name: "TREBLE", pointHz: 12000, make: (db) => highShelfFilter(5000, db, 0.707) },
 };
 
@@ -196,7 +196,9 @@ function setupCurve(tone) {
     svgElement("text", { class: "axis", x: x + 3, y: bottom - 1.5 }, axis, text);
   }
   for (const filter of Object.values(CURVE_FILTERS)) {
-    svgElement("text", { class: "name", x: curveX(filter.pointHz), y: bottom + 13 }, axis, filter.name);
+    const name = svgElement("text", { class: "name", x: curveX(filter.pointHz), y: bottom + 13 }, axis, filter.name);
+    // MID には、小さい字で "(VOICE)" を添える。
+    if (filter.note) svgElement("tspan", {}, name, filter.note);
   }
 
   curveReady = true;
