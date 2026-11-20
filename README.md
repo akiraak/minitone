@@ -78,6 +78,7 @@ Then start MiniTone from the Start menu. Press the power button on the left to t
 
 - Knobs: drag up or down, use the mouse wheel, or use the arrow keys. Hold Shift while dragging for fine steps. Double-click to return to the center (0 dB, 100%).
 - The close button keeps the app in the system tray. To quit, right-click the tray icon and choose "Quit".
+- MiniTone does not start with Windows. The APO keeps applying your settings while the app is not running; start the app only when you want to change them.
 
 ### Updating
 
@@ -135,7 +136,6 @@ powershell -ExecutionPolicy Bypass -File .\uninstall-apo.ps1
 
 - Any PC other than the author's. (Install, install over an existing version, and uninstall restoring the previous state were verified on the author's PC.)
 - Whether DRM-protected playback (streaming services and so on) still produces sound
-- The corner frequencies of Treble and Bass (5 kHz, 150 Hz) are provisional
 
 ## Troubleshooting
 
