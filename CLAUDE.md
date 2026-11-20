@@ -8,7 +8,7 @@
 
 - アプリ名は **MiniTone**（2026-11-20 にユーザーが決定）。ウィンドウの題、スタートメニュー、「インストールされているアプリ」の表示、インストール先（`C:\Program Files\MiniTone`）、実行ファイル（`MiniTone.exe`）、インストーラ（`MiniTone-setup.exe`）がこの名前。
   - 内部の名前も `minitone` にそろえた（同じ日）: GitHub のリポジトリ（`akiraak/minitone`）、設定とログのフォルダ（`C:\ProgramData\akiraak-minitone`）、APO の DLL（`minitone_apo.dll`）、レジストリの `SOFTWARE\akiraak\minitone`、開発用のフォルダ（`%LOCALAPPDATA%\akiraak-minitone-dev`）。前の名前は `equalizer`。APO の CLSID は変えていない。
-  - WSL のフォルダは `~/equalizer` のまま（project-manager の登録と合わせて変える。まだ変えていない）。
+  - WSL のフォルダも `~/minitone` に変えた（project-manager の登録も同じ）。
 - 対象は Windows 全体の音（ブラウザ、ゲーム、音楽プレイヤーなど、どのアプリの音にも効く）。特定のアプリの中だけの再生機能ではない。
 - sx360 の Windows 側で動く。
 
@@ -46,7 +46,7 @@
 
 ## 開発環境
 
-- Claude Code は sx360（Windows 11 + WSL2）の WSL で動く。リポジトリは WSL の `~/equalizer`。
+- Claude Code は sx360（Windows 11 + WSL2）の WSL で動く。リポジトリは WSL の `~/minitone`。
 - アプリは Windows 側で動くので、動作確認は sx360 の Windows 側で行う。WSL から Windows のコマンドを呼ぶときは `cd /mnt/c` してから `powershell.exe` を使う（詳しくは `~/pc-manager/CLAUDE.md` の「Windows ホストでの操作方法」）。
 - ビルドは Windows 側のツール（`cargo.exe`、`cargo tauri`、MSVC のビルドツール）で行い、WSL から `powershell.exe` 経由で呼ぶ。WSL からのクロスビルドはしない。
 - sx360 の Windows 側に入れてある開発用のツール: Visual Studio の C++ ビルドツール、Windows SDK 10.0.26100（2026-11-19 に winget で入れた）、Rust。ATL は入っていない（APO は ATL を使わずに書いている）。
@@ -105,7 +105,7 @@ highshelf=5000,-3.0,0.707
 ## ビルドとテスト
 
 ```bash
-cd /mnt/c && powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w ~/equalizer/apo/build.ps1)" | tr -d '\r'
+cd /mnt/c && powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w ~/minitone/apo/build.ps1)" | tr -d '\r'
 ```
 
 - APO: ビルドのあとにテスト（`dsp_test.exe`、`host_test.exe`）が走る。どちらも最後に `PASS (0 failures)` が出れば成功。
