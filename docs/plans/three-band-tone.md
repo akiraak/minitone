@@ -50,6 +50,39 @@
 
 声の調整が要らず、いまの 2 つで足りているなら、A のままでよい。C はおすすめしない。
 
+## 調べたこと（2026-11-20）
+
+ユーザーが「実装ではなくて、まずは中音の調整を入れるべきか情報を調べて」と指示したので、ウェブで調べた。出どころの多くは、メーカーの案内、フォーラム、解説の記事で、測定にもとづくものは少ない。
+
+### 入れる理由になること
+
+- **声の聞き取りやすさは中音で決まる。** 聞き取りに効くのは 0.5 〜 4 kHz。台詞を聞き取りやすくする定番の調整は、1 〜 3 kHz を幅広く数 dB 上げること。いまの Bass（150 Hz から下）と Treble（5 kHz から上）は、この帯域に触れない。
+- **2 つだけの製品で、中音を求める声が実際にある。** Sonos のアプリは Bass と Treble の 2 つで、利用者のフォーラムに「中音の調整が欲しい」という投稿が繰り返し立っている。台詞を強調する機能は、音楽では使えず、中音の調整の代わりにならないという意見がある。
+- **ヘッドホンの癖を直せる。** 低音と高音を持ち上げた「V 字」の音作りのヘッドホンは、500 Hz 〜 1.5 kHz が引っ込み、声が奥に聞こえるという不満が多い。
+
+### 入れない理由になること
+
+- **家庭用のアンプの標準は、ずっと 2 つ。** トーンコントロールの元になった回路（Baxandall、1952 年）は Bass と Treble の 2 つ。耳は中音にいちばん敏感で、音量を下げたときに聞こえにくくなるのは低音と高音なので、補う必要が大きいのは両端。
+- **いまの 3 つのツマミで、中音を上げ下げしたのに近いことができる。** Bass と Treble を下げて Volume を上げると、あいだの 150 Hz 〜 5 kHz が相対的に上がる。逆に、Bass と Treble を上げて Volume を下げると、中音が下がる。Sonos のフォーラムでも、同じやり方が回避策として勧められている。MiniTone は Volume が 150% まであるので、これができる。ただし、動くのは 150 Hz 〜 5 kHz 全体で、1 〜 3 kHz だけを狙うことはできない。
+- **周波数が決まった中音のツマミ 1 つは、狙いが合わないことがある。** 声をはっきりさせたいなら 2 〜 3 kHz、こもりを取りたいなら 300 〜 500 Hz で、場所が違う。1 kHz に決めると、どちらにも少しずれる。ギターやベースのアンプでも、中音は周波数を選べるものが使いやすいとされる。
+- **上げすぎると聞き疲れする。** 1 〜 4 kHz を上げすぎると、聞き疲れや、子音の区別がつきにくくなることがある。±20 dB の幅は中音には大きすぎる。
+
+### 結論
+
+**中音のツマミは、無くても困らない場面が多い。入れる決め手になるのは「声を聞き取りやすくしたい」という用途があるかどうか。**
+
+- 音楽の好みの調整（低音を足す、高音を抑える）が主な使い道なら、いまの 3 つで足りる。中音に近いことも、いまのツマミの組み合わせでできる。上の「おすすめ」で B とした判断は、ここで改める。
+- 動画や会議の声を聞き取りやすくしたいなら、入れる価値がある。その場合、中心は 1 kHz ではなく 2 kHz 前後、幅は ±20 dB より狭く（±10 dB ほど）するのがよい。
+
+### 出どころ
+
+- 声の帯域と調整: [Politecnico di Torino の論文](https://iris.polito.it/bitstream/11583/2906296/1/main.pdf)、[Live Design](https://www.livedesignonline.com/sound/corporate-audio-101)、[Sonos の解説](https://www.sonos.com/en/blog/what-is-eq)、[Shotcut のフォーラム](https://forum.shotcut.org/t/equalizer-15-band-audio-filter/32466)
+- Sonos の利用者の要望と回避策: [中音の調整の要望](https://en.community.sonos.com/controllers-music-services-228995/need-for-user-adjustable-mid-range-eq-on-arc-sound-bars-6876482)、[3 つのバンドの要望](https://en.community.sonos.com/controllers-music-services-228995/when-will-sonos-update-the-app-with-a-3-band-eq-bass-mid-treble-6879607?postid=16671357)、[台詞が聞き取りにくいという相談](https://en.community.sonos.com/home-theater-228993/anything-to-be-done-for-beam-poor-midrange-and-poor-dialog-quality-6862760)
+- 2 つのトーンコントロールの由来: [Peter Baxandall](https://www.wikipedia.org/wiki/Peter_Baxandall)、[Kevin Boone の解説](https://kevinboone.me/tone_control.html)、[Hi-Fi News](https://hifinews.com/node/134693)
+- 耳の感度と音量: [Loudness compensation](https://en.wikipedia.org/wiki/Loudness_compensation)、[Equal-loudness contour](https://en.wikipedia.com/wiki/Equal-loudness_contour)
+- 2 つと 3 つの比較（楽器のアンプ）: [Yamaha](https://hub.yamaha.com/guitars/bass/the-basics-of-bass-eq/)、[TalkBass](https://www.talkbass.com/threads/2-band-or-3-active-eq.1362985/)
+- スピーカーとヘッドホンの癖: [Which?](https://www.which.co.uk/news/article/easy-ways-to-improve-the-sound-on-your-windows-pc-or-mac-aWsCD3E393ru)、[RTINGS の用語集](https://www.rtings.com/headphones/learn/sound-quality-glossary)、[Headphonesty](https://www.headphonesty.com/2017/01/v-shaped-sound-signature-mean/)
+
 ## 試し版（2026-11-20）
 
 ユーザーが「先に検証をする」と指示したので、B 案の試し版を作った。まだ決定ではない。
