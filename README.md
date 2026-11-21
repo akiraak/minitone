@@ -80,7 +80,7 @@ Download `MiniTone-setup.exe` from the [latest release](https://github.com/akira
 
 Then start MiniTone from the Start menu. Press the power button on the left to turn it on, and turn the knobs.
 
-- The three small icons on the right switch between the knob view, the LED bar view and the curve view.
+- The three small icons at the top right switch between the knob view, the LED bar view and the curve view.
 - Knobs: drag left or right, use the mouse wheel, or use the arrow keys. Hold Shift while dragging for fine steps.
 - Bars: click a position on a bar to set that value, or drag along it. The mouse wheel and the arrow keys work too.
 - Mid is centered at 2 kHz, the range that makes voices easier to hear. The panel labels it "MID (VOICE)".

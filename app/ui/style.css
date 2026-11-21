@@ -23,7 +23,8 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 14px 0 12px;
+  /* 上の 26 px は、表示の切り替えの帯。その下に、いままでと同じ 14 px の空き。 */
+  padding: 40px 0 12px;
   background: linear-gradient(180deg, var(--panel-top) 0%, var(--panel-bottom) 100%);
   color: var(--text);
   font-family: "Segoe UI", "Yu Gothic UI", system-ui, sans-serif;
@@ -145,9 +146,9 @@ main {
   min-height: 0;
 }
 
-/* 横の並び（ウィンドウの幅 688 px）:
-   電源の区画 78 px、縦線 2 px、そのあと「空き 22 px + ツマミ 116 px」が 4 つ、
-   空き 22 px、表示の切り替えの絵 20 px、右の端の空き 14 px。 */
+/* 横の並び（ウィンドウの幅 654 px）:
+   電源の区画 78 px、縦線 2 px、そのあと「空き 22 px + ツマミ 116 px」が 4 つ、右の端の空き 22 px。
+   表示の切り替えは、ツマミの上の帯（高さ 26 px）の右に置く。 */
 .control {
   display: flex;
   flex-direction: column;
@@ -157,12 +158,14 @@ main {
   margin-left: 22px;
 }
 
-/* 電源の列は、上から 電源のボタン、POWER、ON / OFF、RESET。区画のまんなかに置く。 */
+/* 電源の列は、上から 電源のボタン、POWER、ON / OFF、RESET。区画のまんなかに置く。
+   上下は、切り替えの帯（26 px）も含めたウィンドウの高さのまんなかにする（帯の半分だけ上げる）。 */
 .control.power {
   width: 78px;
   margin-left: 0;
   margin-right: 2px;
   gap: 4px;
+  transform: translateY(-13px);
 }
 
 .control.power .value {
@@ -196,12 +199,12 @@ main {
 
 /* 電源の列と BASS の列の間の縦線。暗い線と明るい線を 1 px ずつ並べ、パネルに彫った溝に見せる。
    位置は、電源の区画（78 px）のすぐ右。
-   ウィンドウの上の端と下の端から 8 px ずつ空ける（body の上下の余白 14 px と 12 px の中に、はみ出させる）。 */
+   ウィンドウの上の端と下の端から 8 px ずつ空ける（body の上下の余白 40 px と 12 px の中に、はみ出させる）。 */
 main::before {
   content: "";
   position: absolute;
   left: 78px;
-  top: -6px;
+  top: -32px;
   bottom: -4px;
   width: 2px;
   background: linear-gradient(90deg, #0d0e10 50%, #44474f 50%);
@@ -291,7 +294,7 @@ body:not(.digital) #bars {
   display: none;
 }
 
-/* 左の空きは 22 px（ツマミのときと同じ）。右は、空き 22 px + 切り替えの絵 20 px + 端の空き 14 px。 */
+/* 左右の空きは 22 px（ツマミのときと同じ）。 */
 #bars {
   flex: 1;
   display: flex;
@@ -299,7 +302,7 @@ body:not(.digital) #bars {
   justify-content: center;
   gap: 11px;
   min-width: 0;
-  padding: 0 56px 0 22px;
+  padding: 0 22px;
 }
 
 #bars .row {
@@ -489,21 +492,23 @@ body:not(.on) .point .num {
   fill: var(--muted);
 }
 
-/* 表示の切り替え。右の端のまんなかに、小さい絵を縦に 3 つ。 */
+/* 表示の切り替え。ツマミの上の帯の右（VOLUME の列の右の端にそろえる）に、
+   丸い枠で囲んだ小さい絵を横に 3 つ。 */
 #view {
   position: absolute;
-  right: 14px;
-  top: 50%;
+  right: 22px;
+  top: 9px;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  transform: translateY(-50%);
+  padding: 1px 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #17181b;
 }
 
 #view button {
-  width: 20px;
+  width: 34px;
   height: 20px;
-  padding: 2px;
+  padding: 2px 9px;
   border: none;
   background: none;
   cursor: pointer;
