@@ -1,6 +1,6 @@
 [package]
 name = "minitone"
-version = "0.2.1"
+version = "0.2.2"
 description = "MiniTone: Treble, Bass and Volume knobs for all Windows audio"
 license = "MIT"
 edition = "2021"
