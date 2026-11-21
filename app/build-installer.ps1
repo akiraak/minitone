@@ -5,7 +5,7 @@
 #   cargo install tauri-cli --version "^2" --locked --root "$env:LOCALAPPDATA\akiraak-minitone-dev\tools"
 # NSIS 本体は、Tauri の CLI が初回に %LOCALAPPDATA%\tauri へ取ってくる。
 #
-# 出力: ユーザーの「ダウンロード」フォルダの MiniTone-setup.exe
+# 出力: ユーザーの「ダウンロード」フォルダの MiniTone-<バージョン>-setup.exe
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 
@@ -51,6 +51,8 @@ if ($exit -ne 0) { throw "インストーラのビルドに失敗した（exit=$
 $setup = Get-ChildItem (Join-Path $target 'release\bundle\nsis') -Filter '*-setup.exe' |
     Sort-Object LastWriteTime | Select-Object -Last 1
 if (-not $setup) { throw 'できたはずのインストーラが見つからない。' }
-$out = Join-Path (Get-DownloadsFolder) 'MiniTone-setup.exe'
+# ファイル名にバージョンを入れる（MiniTone-0.2.3-setup.exe）。どの版かが名前で分かるように。
+$version = (Get-Content (Join-Path $PSScriptRoot 'src-tauri\tauri.conf.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version
+$out = Join-Path (Get-DownloadsFolder) "MiniTone-$version-setup.exe"
 Copy-Item $setup.FullName $out -Force
 Get-Item $out | ForEach-Object { '{0} ({1} bytes)' -f $_.FullName, $_.Length }

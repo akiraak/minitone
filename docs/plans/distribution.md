@@ -60,6 +60,7 @@ MiniTone を、作者以外の人が入れて使える形にする。いまは�
 - C-9: README に「Troubleshooting」と「Reporting a problem」を書いた。
 - 新しいインストーラを sx360 で上書きインストールして、ユーザーが確かめた。
 - A-1: v0.1.0 を GitHub の Releases に置いた（`MiniTone-setup.exe` と SHA-256）。README の入れ方を、Releases から落とす書き方に直した。作者の PC 以外での確認は待たなかった（ユーザーの判断）。
+  - いまの手順は、GitHub Actions を使う形に変わった（[プラン](archive/github-actions.md) の「結果」）。下は、v0.1.0 のときの手順。
   - リリースの手順: バージョンを上げる → `apo\build.ps1` → `app\build-installer.ps1` → ユーザーがインストールして確かめる → コミットしてプッシュ → `gh release create vX.Y.Z` に「ダウンロード」フォルダの `MiniTone-setup.exe` を付け、説明に SHA-256 を書く。
 - B-4: インストーラは署名しない（2026-11-20、ユーザーの判断）。README の「Install」に SmartScreen の警告のことを書いてある。
 - C-10: Windows の起動で自動的に常駐させない（2026-11-20、ユーザーの判断）。

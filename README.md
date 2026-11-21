@@ -71,7 +71,7 @@ If the file is missing or broken, audio passes through unchanged.
 
 ## Install
 
-Download `MiniTone-setup.exe` from the [latest release](https://github.com/akiraak/minitone/releases/latest) and run it. Each release lists the SHA-256 of the installer.
+Download the installer (`MiniTone-<version>-setup.exe`) from the [latest release](https://github.com/akiraak/minitone/releases/latest) and run it. Each release lists the SHA-256 of the installer.
 
 - Windows asks for administrator approval (UAC).
 - The installer is not signed, so Windows SmartScreen shows a warning. Choose "More info" → "Run anyway".
@@ -91,7 +91,7 @@ Then start MiniTone from the Start menu. Press the power button on the left to t
 
 ### Updating
 
-There is no automatic update. To update, download the newer `MiniTone-setup.exe` and run it over the installed version. Your settings are kept. Sound stops for a moment while the APO is replaced.
+There is no automatic update. To update, download the newer installer and run it over the installed version. Your settings are kept. Sound stops for a moment while the APO is replaced.
 
 ## Uninstall
 
@@ -113,7 +113,7 @@ powershell -ExecutionPolicy Bypass -File app\build-installer.ps1
 - `apo\build.ps1` builds the DLL and runs the tests.
 - `app\build-installer.ps1` builds the app and creates an installer that bundles the DLL and the registration scripts.
   - It needs the Tauri CLI (version 2). The top of the script explains how to install it.
-- The installer is written to your Downloads folder as `MiniTone-setup.exe`.
+- The installer is written to your Downloads folder as `MiniTone-<version>-setup.exe`.
 - To build and try only the app, use `app\build.ps1`. It writes `MiniTone.exe` to your Downloads folder.
 - Intermediate build files and the development copies of the registration scripts go to `%LOCALAPPDATA%\akiraak-minitone-dev`.
 

@@ -78,16 +78,20 @@ jobs:
           $setup = Get-ChildItem "$env:LOCALAPPDATA\akiraak-minitone-dev\target\release\bundle\nsis" -Filter '*-setup.exe' |
               Sort-Object LastWriteTime | Select-Object -Last 1
           if (-not $setup) { throw 'The installer was not built.' }
+          # ファイル名にバージョンを入れる（MiniTone-0.2.3-setup.exe）。
+          $version = (Get-Content app\src-tauri\tauri.conf.json -Raw -Encoding UTF8 | ConvertFrom-Json).version
+          $name = "MiniTone-$version-setup.exe"
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item $setup.FullName dist\MiniTone-setup.exe -Force
-          $hash = (Get-FileHash dist\MiniTone-setup.exe -Algorithm SHA256).Hash.ToLower()
-          "$hash  MiniTone-setup.exe"
+          Copy-Item $setup.FullName "dist\$name" -Force
+          $hash = (Get-FileHash "dist\$name" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name"
           "sha256=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding ascii
+          "name=$name" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding ascii
 
       - uses: actions/upload-artifact@v4
         with:
           name: MiniTone-setup
-          path: dist/MiniTone-setup.exe
+          path: dist/${{ steps.installer.outputs.name }}
           if-no-files-found: error
 
       # 下書きで作る。インストーラを落として確かめてから、Releases の画面で公開する。
@@ -96,7 +100,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SHA256: ${{ steps.installer.outputs.sha256 }}
+          NAME: ${{ steps.installer.outputs.name }}
         run: |
-          $notes = "SHA-256 of ``MiniTone-setup.exe``: ``$env:SHA256```n`nBuilt by GitHub Actions from this tag."
-          gh release create $env:GITHUB_REF_NAME dist\MiniTone-setup.exe --draft --title "MiniTone $($env:GITHUB_REF_NAME.TrimStart('v'))" --notes $notes --generate-notes
+          $notes = "SHA-256 of ``$env:NAME``: ``$env:SHA256```n`nBuilt by GitHub Actions from this tag."
+          gh release create $env:GITHUB_REF_NAME "dist\$env:NAME" --draft --title "MiniTone $($env:GITHUB_REF_NAME.TrimStart('v'))" --notes $notes --generate-notes
           if ($LASTEXITCODE -ne 0) { throw "gh release create failed (exit=$LASTEXITCODE)." }

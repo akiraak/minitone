@@ -6,7 +6,7 @@
 
 **sx360（Windows 11）で鳴る音の全部にかけるイコライザーアプリ。アプリ名は MiniTone。**
 
-- アプリ名は **MiniTone**（2026-11-20 にユーザーが決定）。ウィンドウの題、スタートメニュー、「インストールされているアプリ」の表示、インストール先（`C:\Program Files\MiniTone`）、実行ファイル（`MiniTone.exe`）、インストーラ（`MiniTone-setup.exe`）がこの名前。
+- アプリ名は **MiniTone**（2026-11-20 にユーザーが決定）。ウィンドウの題、スタートメニュー、「インストールされているアプリ」の表示、インストール先（`C:\Program Files\MiniTone`）、実行ファイル（`MiniTone.exe`）、インストーラ（`MiniTone-<バージョン>-setup.exe`）がこの名前。
   - 内部の名前も `minitone` にそろえた（同じ日）: GitHub のリポジトリ（`akiraak/minitone`）、設定とログのフォルダ（`C:\ProgramData\akiraak-minitone`）、APO の DLL（`minitone_apo.dll`）、開発用のフォルダ（`%LOCALAPPDATA%\akiraak-minitone-dev`）。前の名前は `equalizer`。APO の CLSID は変えていない。
   - WSL のフォルダも `~/minitone` に変えた（project-manager の登録も同じ）。
 - 対象は Windows 全体の音（ブラウザ、ゲーム、音楽プレイヤーなど、どのアプリの音にも効く）。特定のアプリの中だけの再生機能ではない。
@@ -99,7 +99,9 @@
 - **Windows の起動で自動的に常駐させない**（2026-11-20 にユーザーが決定）。APO は設定ファイルを読むので、アプリが動いていなくても音には効く。
 - 対応するのは x64 の Windows 11。Arm64 はインストーラが止める。Windows 10 は止めないが、確かめていない。
 - 画面のアプリは `VCRUNTIME140.dll` に依存しない（Tauri が `static_vcruntime` で静的にリンクする。2026-11-20 に実行ファイルの依存を見て確認）。Visual C++ の再頒布パッケージは要らない。
-- バージョンは `app/src-tauri/tauri.conf.json` と `app/src-tauri/Cargo.toml` の 2 か所（`Cargo.lock` はビルドで更新される）。
+- インストーラのファイル名にはバージョンを入れる（`MiniTone-0.2.3-setup.exe` の形。2026-11-20 にユーザーが決定。0.2.2 までは `MiniTone-setup.exe`）。どの版かが名前で分かるようにするため。アプリ本体の `MiniTone.exe` には入れない。
+- バージョンは `app/src-tauri/tauri.conf.json` と `app/src-tauri/Cargo.toml` の 2 か所。`Cargo.lock` の `minitone` の行も手で合わせる（ビルドは `--locked` なので、合っていないと止まる）。
+- リリースは、タグ `vX.Y.Z` を push すると GitHub Actions がテストとビルドをして、Releases に下書きを作る。下書きのインストーラを落として確かめてから、公開する（手順は `docs/plans/archive/github-actions.md` の「結果」）。いま公開している版は 0.2.2（2026-11-20）。
 - 残りの項目と進み具合は `docs/plans/distribution.md`。
 
 ## 設定ファイル
@@ -132,7 +134,7 @@ cd /mnt/c && powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath 
 
 - APO: ビルドのあとにテスト（`dsp_test.exe`、`host_test.exe`）が走る。どちらも最後に `PASS (0 failures)` が出れば成功。
 - 画面のアプリは `app/build.ps1` を同じ形で呼ぶ。`cargo test` のあとにリリース版をビルドし、ユーザーの「ダウンロード」フォルダに `MiniTone.exe` を置く。ビルドの出力（`target`）は `%LOCALAPPDATA%\akiraak-minitone-dev` に置く（WSL のフォルダに置くと遅い）。
-- インストーラは `app/build-installer.ps1` でビルドする（先に `apo/build.ps1`）。Tauri の CLI（バージョン 2）は、全体には入れず `%LOCALAPPDATA%\akiraak-minitone-dev\tools` に入れてある（全体に入っているのはバージョン 1 で、ほかのプロジェクト用）。できたものは、ユーザーの「ダウンロード」フォルダの `MiniTone-setup.exe`。
+- インストーラは `app/build-installer.ps1` でビルドする（先に `apo/build.ps1`）。Tauri の CLI（バージョン 2）は、全体には入れず `%LOCALAPPDATA%\akiraak-minitone-dev\tools` に入れてある（全体に入っているのはバージョン 1 で、ほかのプロジェクト用）。できたものは、ユーザーの「ダウンロード」フォルダの `MiniTone-<バージョン>-setup.exe`。
 - **ユーザーに実行してもらうファイル（インストーラ、試すための `MiniTone.exe`）は「ダウンロード」フォルダに作る**（2026-11-20、ユーザーの指示）。ビルドの途中のファイル、ツール、開発用の登録のスクリプトは `%LOCALAPPDATA%\akiraak-minitone-dev` のまま。
 - **インストーラの実行とアンインストールは、管理者の権限が要り、音の経路を変える。Claude Code は実行せず、ユーザーに実行してもらう。**
 - **`HKLM\SOFTWARE\akiraak\MiniTone` は、インストーラ（Tauri の NSIS）がインストール先を覚えるキー。登録と解除のスクリプトは触らない。** 0.1.0 では `install-apo.ps1` がこのキーを消していて、版が上がる上書きインストールで、前の版のアンインストーラが「Error launching installer」で止まった（2026-11-20。0.2.1 で直し、インストーラのフックが値を書き戻す。経緯は `docs/plans/archive/upgrade-uninstall-error.md`）。
