@@ -23,7 +23,6 @@ $ModesGuid = '{d3993a3f-99c2-4402-b5ec-a92a0367664b}'
 $DefaultMode = '{C18E2F7E-933D-4965-B7D1-1EEF228D2AF3}'
 $RenderPath = 'SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render'
 $AudioPath = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Audio'
-$SettingsPath = 'SOFTWARE\akiraak\minitone'
 $InstallDir = Join-Path $env:ProgramFiles 'akiraak-minitone'
 $StateDir = Join-Path $env:ProgramData 'akiraak-minitone'
 $StateFile = Join-Path $StateDir 'install-state.json'
@@ -162,16 +161,8 @@ if (Test-Path $installedDll) {
     "DLL not found ($installedDll). Skipping unregistration."
 }
 
-# 3. 設定のキーを消す
-if (-not $DryRun) {
-    [Microsoft.Win32.Registry]::LocalMachine.DeleteSubKeyTree($SettingsPath, $false)
-    $parent = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SOFTWARE\akiraak', $true)
-    if ($parent) {
-        $empty = ($parent.SubKeyCount -eq 0 -and $parent.ValueCount -eq 0)
-        $parent.Close()
-        if ($empty) { [Microsoft.Win32.Registry]::LocalMachine.DeleteSubKey('SOFTWARE\akiraak', $false) }
-    }
-}
+# 3. HKLM\SOFTWARE\akiraak\MiniTone には触らない。インストーラ（Tauri の NSIS）のキーで、
+#    アンインストーラが自分で片付ける。0.1.0 まではここで消していた。
 
 # 4. 署名の検査の設定を、入れる前の状態に戻す
 if ($state) {

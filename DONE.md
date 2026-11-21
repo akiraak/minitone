@@ -55,3 +55,6 @@
 - [x] MID の表記を VOICE にしたら、分かりやすくなるか、分かりにくくなるかを考える（2026-11-20） [plan](docs/plans/archive/mid-or-voice.md)
   - VOICE だけにすると、声だけが変わるように読める、下げる方向の意味が合わない、という理由で、名前は MID のままにした
   - ユーザーが案 V3 を選び、MID に小さい字で "(VOICE)" を添えた。README の絵 3 枚を作り直した
+- [x] 上書きインストールで「Error launching installer」が出るのを直す（2026-11-20） [plan](docs/plans/archive/upgrade-uninstall-error.md)
+  - 原因: `install-apo.ps1` が、インストーラがインストール先を覚えるレジストリのキー（`HKLM\SOFTWARE\akiraak\MiniTone`）を消していた。版が上がる上書きで、前の版のアンインストーラが止まった
+  - 対応: スクリプトがこのキーを消すのをやめ、インストーラのフックが値を書き戻す。ユーザーが sx360 で、0.1.0 からの上書きを確かめた

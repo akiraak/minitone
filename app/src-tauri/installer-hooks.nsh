@@ -9,6 +9,35 @@
 
 !include "x64.nsh"
 
+; Version 0.1.0 deleted HKLM\Software\akiraak\MiniTone after every install
+; (install-apo.ps1 used the same key for an old test value). The installer keeps
+; the install location there. Without it, "Uninstall before installing" starts
+; the old uninstaller with an empty `_?=` and it stops with
+; "Error launching installer".
+; Before any page is shown, put the install location back from the uninstall
+; entry. .onInit has already selected the 64-bit registry view.
+!define MUI_CUSTOMFUNCTION_GUIINIT MiniToneRepairInstallLocation
+Function MiniToneRepairInstallLocation
+  Push $R0
+  Push $R1
+  ReadRegStr $R0 HKLM "Software\akiraak\MiniTone" ""
+  ${If} $R0 == ""
+    ReadRegStr $R0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\MiniTone" "InstallLocation"
+    ; The value is written with quotes around it.
+    StrCpy $R1 $R0 1
+    ${If} $R1 == '"'
+      StrCpy $R0 $R0 "" 1
+      StrCpy $R0 $R0 -1
+    ${EndIf}
+    ${If} $R0 != ""
+    ${AndIf} ${FileExists} "$R0\uninstall.exe"
+      WriteRegStr HKLM "Software\akiraak\MiniTone" "" $R0
+    ${EndIf}
+  ${EndIf}
+  Pop $R1
+  Pop $R0
+FunctionEnd
+
 ; The APO is an x64 DLL. The audio engine of Windows on Arm cannot load it,
 ; so the installer stops there before it changes anything.
 !macro NSIS_HOOK_PREINSTALL

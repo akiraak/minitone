@@ -29,7 +29,6 @@ $ModesGuid = '{d3993a3f-99c2-4402-b5ec-a92a0367664b}'
 $DefaultMode = '{C18E2F7E-933D-4965-B7D1-1EEF228D2AF3}'
 $RenderPath = 'SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render'
 $AudioPath = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Audio'
-$SettingsPath = 'SOFTWARE\akiraak\minitone'
 $InstallDir = Join-Path $env:ProgramFiles 'akiraak-minitone'
 $StateDir = Join-Path $env:ProgramData 'akiraak-minitone'
 $StateFile = Join-Path $StateDir 'install-state.json'
@@ -302,8 +301,8 @@ if (-not (Test-Path $SettingsFile)) {
     # 最初は切っておく（オリジナルの音）。
     Set-Content -Path $SettingsFile -Value @('enabled=0', 'preamp=0') -Encoding ASCII
 }
-# 前の版が使っていた、動作確認用の音量の値を消す。
-[Microsoft.Win32.Registry]::LocalMachine.DeleteSubKeyTree($SettingsPath, $false)
+# HKLM\SOFTWARE\akiraak\MiniTone には触らない。インストーラ（Tauri の NSIS）が、インストール先を覚えるのに使う。
+# 0.1.0 まではここでこのキーを消していて、次の版のインストーラが前の版をアンインストールできなかった。
 
 # 6. 出力デバイスに取り付ける
 foreach ($plan in $plans) {

@@ -7,7 +7,7 @@
 **sx360（Windows 11）で鳴る音の全部にかけるイコライザーアプリ。アプリ名は MiniTone。**
 
 - アプリ名は **MiniTone**（2026-11-20 にユーザーが決定）。ウィンドウの題、スタートメニュー、「インストールされているアプリ」の表示、インストール先（`C:\Program Files\MiniTone`）、実行ファイル（`MiniTone.exe`）、インストーラ（`MiniTone-setup.exe`）がこの名前。
-  - 内部の名前も `minitone` にそろえた（同じ日）: GitHub のリポジトリ（`akiraak/minitone`）、設定とログのフォルダ（`C:\ProgramData\akiraak-minitone`）、APO の DLL（`minitone_apo.dll`）、レジストリの `SOFTWARE\akiraak\minitone`、開発用のフォルダ（`%LOCALAPPDATA%\akiraak-minitone-dev`）。前の名前は `equalizer`。APO の CLSID は変えていない。
+  - 内部の名前も `minitone` にそろえた（同じ日）: GitHub のリポジトリ（`akiraak/minitone`）、設定とログのフォルダ（`C:\ProgramData\akiraak-minitone`）、APO の DLL（`minitone_apo.dll`）、開発用のフォルダ（`%LOCALAPPDATA%\akiraak-minitone-dev`）。前の名前は `equalizer`。APO の CLSID は変えていない。
   - WSL のフォルダも `~/minitone` に変えた（project-manager の登録も同じ）。
 - 対象は Windows 全体の音（ブラウザ、ゲーム、音楽プレイヤーなど、どのアプリの音にも効く）。特定のアプリの中だけの再生機能ではない。
 - sx360 の Windows 側で動く。
@@ -132,6 +132,8 @@ cd /mnt/c && powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath 
 - インストーラは `app/build-installer.ps1` でビルドする（先に `apo/build.ps1`）。Tauri の CLI（バージョン 2）は、全体には入れず `%LOCALAPPDATA%\akiraak-minitone-dev\tools` に入れてある（全体に入っているのはバージョン 1 で、ほかのプロジェクト用）。できたものは、ユーザーの「ダウンロード」フォルダの `MiniTone-setup.exe`。
 - **ユーザーに実行してもらうファイル（インストーラ、試すための `MiniTone.exe`）は「ダウンロード」フォルダに作る**（2026-11-20、ユーザーの指示）。ビルドの途中のファイル、ツール、開発用の登録のスクリプトは `%LOCALAPPDATA%\akiraak-minitone-dev` のまま。
 - **インストーラの実行とアンインストールは、管理者の権限が要り、音の経路を変える。Claude Code は実行せず、ユーザーに実行してもらう。**
+- **`HKLM\SOFTWARE\akiraak\MiniTone` は、インストーラ（Tauri の NSIS）がインストール先を覚えるキー。登録と解除のスクリプトは触らない。** 0.1.0 では `install-apo.ps1` がこのキーを消していて、版が上がる上書きインストールで、前の版のアンインストーラが「Error launching installer」で止まった（2026-11-20。0.2.1 で直し、インストーラのフックが値を書き戻す。経緯は `docs/plans/archive/upgrade-uninstall-error.md`）。
+- **新しい版を出す前に、前の版が入っている PC で、版が上がる上書きインストール（既定の「アンインストールしてから入れる」）を確かめる。** 同じ版同士の上書きは、アンインストーラを呼ばない別の道を通る。
 - インストーラ（NSIS）は 32 bit のプロセス。フックから PowerShell を呼ぶときは、64 bit 版を `Sysnative` 経由で明示する。そうしないと、レジストリの書き込み先が 32 bit 用の場所にずれる。
 - Windows 側の Rust は 1.100.0（2026-11-19 に更新）。Tauri 2 のいまのクレートは 1.90 以上を要求する。
 - ビルドは、DLL と登録・解除のスクリプトを Windows 側の `%LOCALAPPDATA%\akiraak-minitone-dev` にもそろえて置く。管理者の PowerShell から WSL のフォルダが見えないことがあるため。
