@@ -99,7 +99,7 @@
 - **Windows の起動で自動的に常駐させない**（2026-11-20 にユーザーが決定）。APO は設定ファイルを読むので、アプリが動いていなくても音には効く。
 - 対応するのは x64 の Windows 11。Arm64 はインストーラが止める。Windows 10 は止めないが、確かめていない。
 - 画面のアプリは `VCRUNTIME140.dll` に依存しない（Tauri が `static_vcruntime` で静的にリンクする。2026-11-20 に実行ファイルの依存を見て確認）。Visual C++ の再頒布パッケージは要らない。
-- インストーラのファイル名にはバージョンを入れる（`MiniTone-0.2.3-setup.exe` の形。2026-11-20 にユーザーが決定。0.2.2 までは `MiniTone-setup.exe`）。どの版かが名前で分かるようにするため。アプリ本体の `MiniTone.exe` には入れない。
+- インストーラのファイル名にはバージョンを入れる（`MiniTone-0.2.3-setup.exe` の形。2026-11-20 にユーザーが決定。0.1.0 は `MiniTone-setup.exe`。公開済みの 0.2.2 は、同じ中身のままファイル名だけ `MiniTone-0.2.2-setup.exe` に付け替えた）。どの版かが名前で分かるようにするため。アプリ本体の `MiniTone.exe` には入れない。
 - バージョンは `app/src-tauri/tauri.conf.json` と `app/src-tauri/Cargo.toml` の 2 か所。`Cargo.lock` の `minitone` の行も手で合わせる（ビルドは `--locked` なので、合っていないと止まる）。
 - リリースは、タグ `vX.Y.Z` を push すると GitHub Actions がテストとビルドをして、Releases に下書きを作る。下書きのインストーラを落として確かめてから、公開する（手順は `docs/plans/archive/github-actions.md` の「結果」）。いま公開している版は 0.2.2（2026-11-20）。
 - 残りの項目と進み具合は `docs/plans/distribution.md`。
